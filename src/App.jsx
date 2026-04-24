@@ -160,6 +160,7 @@ export default function BankGame() {
   const [preRoll, setPreRoll] = useState(null);
   const [bankTarget, setBankTarget] = useState(null); // which player tapped to bank
   const [rollCount, setRollCount] = useState(0);      // rolls completed this round
+  const [lastRoll, setLastRoll] = useState(null);     // { name, value, note } for inline recap
 
   const totalR = usingCustom && customR ? (parseInt(customR) || 10) : roundPref;
   const early = rollCount < 3;                        // first 3 rolls of any round — banking locked
@@ -181,7 +182,7 @@ export default function BankGame() {
     setPlayers(ps);
     setRound(1); setCi(0); setDice(''); setScr('roll');
     setRolled(null); setNote(''); setRdNote('');
-    setSnap(null); setPreRoll(null); setBankTarget(null); setRollCount(0);
+    setSnap(null); setPreRoll(null); setBankTarget(null); setRollCount(0); setLastRoll(null);
     setPhase('game');
   };
 
@@ -200,7 +201,7 @@ export default function BankGame() {
       roundPts: 0,
       banked: false,
     })).sort((a, b) => b.bankPts - a.bankPts);
-    setPlayers(final); setCi(0); setSnap(null); setPreRoll(null); setBankTarget(null);
+    setPlayers(final); setCi(0); setSnap(null); setPreRoll(null); setBankTarget(null); setLastRoll(null);
     setRdNote(sevened
       ? '💥 Seven! Unbanked players lose their round points.'
       : '✅ Round complete! Players re-ranked by bank.');
@@ -250,32 +251,36 @@ export default function BankGame() {
   const doRoll = () => {
     const v = parseInt(dice);
     if (!dice || isNaN(v) || v < 2 || v > 12) return;
-    setPreRoll({ players: JSON.parse(JSON.stringify(players)), ci, rollCount });
+    setPreRoll({ players: JSON.parse(JSON.stringify(players)), ci, rollCount, lastRoll });
     setBankTarget(null);
-    setDice(''); setRolled(v);
+    setDice('');
     setRollCount(c => c + 1);
+    const rollerName = players[ci]?.name ?? '';
 
-    if (early) {
-      const pts = v === 7 ? 70 : v;
-      const ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + pts });
-      setPlayers(ps); setSnap(ps);
-      setNote(v === 7 ? '🎲 SEVEN = 70 to the pot!' : `+${pts} to the pot`);
-      setScr('rolled');
-      return;
-    }
-
-    if (v === 7) {
+    // Round-ending seven: only after the first 3 rolls. Show the splash screen so
+    // the user can confirm (or redo if it was a typo).
+    if (!early && v === 7) {
       const ps = players.map(p => p.banked ? p : { ...p, roundPts: 0 });
       setPlayers(ps); setSnap(ps);
+      setRolled(v);
       setNote('💥 SEVEN! Unbanked players cleared!');
       setScr('rolled');
       return;
     }
 
-    const ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + v });
+    let ps;
+    let noteText;
+    if (early) {
+      const pts = v === 7 ? 70 : v;
+      ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + pts });
+      noteText = v === 7 ? `🎲 SEVEN = 70 to the pot` : `+${pts} to the pot`;
+    } else {
+      ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + v });
+      noteText = `+${v} to the pot`;
+    }
     setPlayers(ps); setSnap(ps);
-    setNote(`+${v} to the pot`);
-    setScr('rolled');
+    setLastRoll({ name: rollerName, value: v, note: noteText });
+    advance(ps, ci);
   };
 
   const doNext = () => { setBankTarget(null); advance(snap ?? players, ci); };
@@ -284,6 +289,7 @@ export default function BankGame() {
     if (!preRoll) return;
     setPlayers(preRoll.players); setCi(preRoll.ci);
     setRollCount(preRoll.rollCount ?? 0);
+    setLastRoll(preRoll.lastRoll ?? null);
     setDice(''); setScr('roll');
     setRolled(null); setNote(''); setSnap(null); setPreRoll(null); setBankTarget(null);
   };
@@ -293,7 +299,7 @@ export default function BankGame() {
     setRound(r => r + 1);
     setScr('roll'); setNote(''); setRdNote('');
     setDice(''); setRolled(null); setSnap(null); setPreRoll(null); setBankTarget(null);
-    setRollCount(0);
+    setRollCount(0); setLastRoll(null);
   };
 
   // A 7 only ends the round if it was rolled AFTER the first 3 rolls.
@@ -583,6 +589,25 @@ export default function BankGame() {
         {/* ROLL INPUT */}
         {scr === 'roll' && (
           <>
+            {lastRoll && (
+              <div style={{
+                margin: '0 12px 8px', padding: '8px 12px', borderRadius: 10,
+                background: T.s1, border: `1px solid ${T.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              }}>
+                <div style={{ fontSize: 12, color: T.sub, minWidth: 0, flex: 1 }}>
+                  <span style={{ color: T.text, fontWeight: 700 }}>{lastRoll.name}</span>
+                  {' rolled '}
+                  <span style={{ color: T.gold, fontWeight: 900 }}>{lastRoll.value}</span>
+                  {' · '}{lastRoll.note}
+                </div>
+                <button onClick={doRedoRoll} style={{
+                  padding: '6px 10px', borderRadius: 8, border: `1px solid ${T.red}`,
+                  background: T.rFade, color: T.red, fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                }}>↩ Redo</button>
+              </div>
+            )}
             <div style={{ padding: '2px 16px 8px', textAlign: 'center' }}>
               {/* Show who we're banking FOR if different from roller */}
               {bankTarget !== null && bankTarget !== ci ? (
