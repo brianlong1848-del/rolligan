@@ -150,7 +150,7 @@ export default function BankGame() {
   const [bankTarget, setBankTarget] = useState(null); // which player tapped to bank
 
   const totalR = usingCustom && customR ? (parseInt(customR) || 10) : roundPref;
-  const early = round <= 3;
+  const early = round <= 2;
   const cur = players[ci] ?? {};
   // The player we're banking for — either tapped player or current roller
   const bankIdx = bankTarget !== null ? bankTarget : ci;
@@ -259,9 +259,9 @@ export default function BankGame() {
       return;
     }
 
-    const ps = players.map((p, i) => i === ci ? { ...p, roundPts: p.roundPts + v } : p);
+    const ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + v });
     setPlayers(ps); setSnap(ps);
-    setNote(`+${v} points`);
+    setNote(`+${v} to the pot`);
     setScr('rolled');
   };
 
