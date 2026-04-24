@@ -1,0 +1,16 @@
+export const T = {
+  bg: '#060e1c',
+  s1: '#0b1a2f',
+  s2: '#112240',
+  s3: '#162e52',
+  border: '#1c3460',
+  gold: '#f5a623',
+  gFade: 'rgba(245,166,35,0.13)',
+  gGlow: 'rgba(245,166,35,0.35)',
+  green: '#00d97e',
+  nFade: 'rgba(0,217,126,0.12)',
+  red: '#ff4d5a',
+  rFade: 'rgba(255,77,90,0.13)',
+  text: '#cce0f5',
+  sub: '#4d7099',
+};
