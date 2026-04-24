@@ -296,7 +296,9 @@ export default function BankGame() {
     setRollCount(0);
   };
 
-  const isSeven = !early && scr === 'rolled' && rolled === 7;
+  // A 7 only ends the round if it was rolled AFTER the first 3 rolls.
+  // During the 3rd roll itself, `early` flips to false post-increment, so gate on rollCount.
+  const isSeven = rollCount > 3 && scr === 'rolled' && rolled === 7;
   const manyPlayers = players.length > 6;
   const rowPad = manyPlayers ? '6px 10px' : '9px 13px';
   const rowFont = manyPlayers ? 12 : 14;
