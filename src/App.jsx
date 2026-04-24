@@ -61,33 +61,44 @@ const DragHandle = () => (
 
 function DraggablePlayerList({ names, setNames }) {
   const [dragState, setDragState] = useState(null);
+  const dragRef = useRef(null);
+  const namesRef = useRef(names);
   const itemRefs = useRef([]);
+  useEffect(() => { namesRef.current = names; }, [names]);
+
   const getClientY = (e) => e.touches ? e.touches[0].clientY : e.clientY;
+  const writeDrag = (v) => { dragRef.current = v; setDragState(v); };
+
   const startDrag = (e, i) => {
     e.preventDefault();
     const el = itemRefs.current[i];
     const h = el ? el.getBoundingClientRect().height + 8 : 60;
-    setDragState({ idx: i, startY: getClientY(e), currentY: getClientY(e), itemH: h });
+    writeDrag({ idx: i, startY: getClientY(e), currentY: getClientY(e), itemH: h });
   };
+
+  const isDragging = dragState !== null;
   useEffect(() => {
-    if (!dragState) return;
+    if (!isDragging) return;
     const onMove = (e) => {
+      const ds = dragRef.current;
+      if (!ds) return;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const dy = clientY - dragState.startY;
-      const newIdx = Math.max(0, Math.min(names.length - 1, dragState.idx + Math.round(dy / dragState.itemH)));
-      if (newIdx !== dragState.idx) {
+      const dy = clientY - ds.startY;
+      const newIdx = Math.max(0, Math.min(namesRef.current.length - 1, ds.idx + Math.round(dy / ds.itemH)));
+      if (newIdx !== ds.idx) {
+        const from = ds.idx;
         setNames(prev => {
           const next = [...prev];
-          const [moved] = next.splice(dragState.idx, 1);
+          const [moved] = next.splice(from, 1);
           next.splice(newIdx, 0, moved);
           return next;
         });
-        setDragState(s => ({ ...s, idx: newIdx, startY: s.startY + (newIdx - s.idx) * s.itemH, currentY: clientY }));
+        writeDrag({ ...ds, idx: newIdx, startY: ds.startY + (newIdx - from) * ds.itemH, currentY: clientY });
       } else {
-        setDragState(s => ({ ...s, currentY: clientY }));
+        writeDrag({ ...ds, currentY: clientY });
       }
     };
-    const onEnd = () => setDragState(null);
+    const onEnd = () => writeDrag(null);
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onEnd);
     window.addEventListener('touchmove', onMove, { passive: false });
@@ -98,23 +109,23 @@ function DraggablePlayerList({ names, setNames }) {
       window.removeEventListener('touchmove', onMove);
       window.removeEventListener('touchend', onEnd);
     };
-  }, [dragState, names.length]);
+  }, [isDragging]);
 
   return (
     <div>
       {names.map((n, i) => {
-        const isDragging = dragState?.idx === i;
-        const offsetY = isDragging ? (dragState.currentY - dragState.startY) : 0;
+        const isItemDragging = dragState?.idx === i;
+        const offsetY = isItemDragging ? (dragState.currentY - dragState.startY) : 0;
         return (
-          <div key={n + i} ref={el => itemRefs.current[i] = el} style={{
+          <div key={n} ref={el => itemRefs.current[i] = el} style={{
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '13px 10px 13px 4px', marginBottom: 8, borderRadius: 14,
-            background: isDragging ? T.s3 : T.s2,
-            border: `1.5px solid ${isDragging ? T.gold : T.border}`,
-            transform: `translateY(${offsetY}px) scale(${isDragging ? 1.03 : 1})`,
-            boxShadow: isDragging ? `0 12px 40px rgba(0,0,0,0.6), 0 0 24px ${T.gGlow}` : 'none',
-            transition: isDragging ? 'box-shadow 0.1s, border-color 0.1s' : 'transform 0.2s ease, box-shadow 0.2s',
-            position: 'relative', zIndex: isDragging ? 100 : 1, touchAction: 'none', userSelect: 'none',
+            background: isItemDragging ? T.s3 : T.s2,
+            border: `1.5px solid ${isItemDragging ? T.gold : T.border}`,
+            transform: `translateY(${offsetY}px) scale(${isItemDragging ? 1.03 : 1})`,
+            boxShadow: isItemDragging ? `0 12px 40px rgba(0,0,0,0.6), 0 0 24px ${T.gGlow}` : 'none',
+            transition: isItemDragging ? 'box-shadow 0.1s, border-color 0.1s' : 'transform 0.2s ease, box-shadow 0.2s',
+            position: 'relative', zIndex: isItemDragging ? 100 : 1, touchAction: 'none', userSelect: 'none',
           }}>
             <div onMouseDown={e => startDrag(e, i)} onTouchStart={e => startDrag(e, i)}
               style={{ cursor: 'grab', touchAction: 'none', flexShrink: 0 }}>
