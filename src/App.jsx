@@ -322,9 +322,9 @@ export default function BankGame() {
       <div style={{ padding: '28px 18px 40px', paddingTop: 'max(env(safe-area-inset-top, 28px), 28px)' }}>
         <div style={{ textAlign: 'center', marginBottom: 26 }}>
           <div style={{
-            fontSize: 80, fontWeight: 900, color: T.gold, letterSpacing: -5, lineHeight: 1,
+            fontSize: 64, fontWeight: 900, color: T.gold, letterSpacing: -2, lineHeight: 1,
             fontFamily: "'Impact', 'Arial Black', fantasy", textShadow: `0 0 60px ${T.gGlow}`,
-          }}>BANK</div>
+          }}>Rolligan</div>
           <div style={{ color: T.sub, fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', marginTop: 4 }}>
             The Dice Game
           </div>
