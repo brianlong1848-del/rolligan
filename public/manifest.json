@@ -1,7 +1,7 @@
 {
-  "name": "Bank — The Dice Game",
-  "short_name": "BANK",
-  "description": "The fast-paced dice banking game",
+  "name": "Rolligan",
+  "short_name": "Rolligan",
+  "description": "Push-your-luck dice party game.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060e1c",

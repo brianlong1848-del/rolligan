@@ -203,8 +203,8 @@ export default function BankGame() {
     })).sort((a, b) => b.bankPts - a.bankPts);
     setPlayers(final); setCi(0); setSnap(null); setPreRoll(null); setBankTarget(null); setLastRoll(null);
     setRdNote(sevened
-      ? '💥 Seven! Unbanked players lose their round points.'
-      : '✅ Round complete! Players re-ranked by bank.');
+      ? "💥 Seven. Anyone who didn't bank just lost everything."
+      : '✅ Round done. Standings updated.');
     setScr('roundEnd'); setRolled(null); setNote(''); setDice('');
   };
 
@@ -263,7 +263,7 @@ export default function BankGame() {
       const ps = players.map(p => p.banked ? p : { ...p, roundPts: 0 });
       setPlayers(ps); setSnap(ps);
       setRolled(v);
-      setNote('💥 SEVEN! Unbanked players cleared!');
+      setNote("💥 Seven. Round's over — un-banked points wiped.");
       setScr('rolled');
       return;
     }
@@ -273,7 +273,7 @@ export default function BankGame() {
     if (early) {
       const pts = v === 7 ? 70 : v;
       ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + pts });
-      noteText = v === 7 ? `🎲 SEVEN = 70 to the pot` : `+${pts} to the pot`;
+      noteText = v === 7 ? `🎲 Lucky 7 — +70 to the pot` : `+${pts} to the pot`;
     } else {
       ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + v });
       noteText = `+${v} to the pot`;
@@ -322,24 +322,29 @@ export default function BankGame() {
       <div style={{ padding: '28px 18px 40px', paddingTop: 'max(env(safe-area-inset-top, 28px), 28px)' }}>
         <div style={{ textAlign: 'center', marginBottom: 26 }}>
           <div style={{
-            fontSize: 80, fontWeight: 900, color: T.gold, letterSpacing: -5, lineHeight: 1,
+            fontSize: 64, fontWeight: 900, color: T.gold, letterSpacing: -2, lineHeight: 1,
             fontFamily: "'Impact', 'Arial Black', fantasy", textShadow: `0 0 60px ${T.gGlow}`,
-          }}>BANK</div>
+          }}>Rolligan</div>
           <div style={{ color: T.sub, fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', marginTop: 4 }}>
-            The Dice Game
+            Push your luck
           </div>
         </div>
 
         <div style={{ background: T.s1, borderRadius: 20, padding: 18, marginBottom: 14 }}>
           <div style={{ color: T.sub, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Players{names.length > 0 ? ` · ${names.length}/10` : ' (max 10)'}</span>
+            <span>Rollers{names.length > 0 ? ` · ${names.length}/10` : ' (max 10)'}</span>
             {names.length > 1 && <span style={{ color: T.border, fontWeight: 400, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>☰ drag to reorder</span>}
           </div>
           <DraggablePlayerList names={names} setNames={setNames} />
+          {names.length === 0 && (
+            <div style={{ color: T.sub, fontSize: 14, textAlign: 'center', padding: '14px 0 4px' }}>
+              Who&apos;s rolling tonight?
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 8, marginTop: names.length ? 10 : 0 }}>
             <input value={nameInp} onChange={e => setNameInp(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addName()}
-              placeholder={names.length >= 10 ? 'Max 10 players reached' : 'Enter player name...'}
+              placeholder={names.length >= 10 ? "Table's full — 10 max" : 'Add a roller...'}
               disabled={names.length >= 10} autoComplete="off"
               style={{
                 flex: 1, padding: '13px 15px', borderRadius: 12,
@@ -393,7 +398,7 @@ export default function BankGame() {
           fontFamily: "'Impact', 'Arial Black', fantasy",
           boxShadow: names.length >= 2 ? `0 0 32px ${T.gGlow}` : 'none', transition: 'all 0.2s',
         }}>
-          {names.length < 2 ? 'Add at least 2 players to start' : '▶  START GAME'}
+          {names.length < 2 ? 'Need at least 2 rollers' : '▶  ROLL OUT'}
         </button>
       </div>
     </div>
@@ -405,8 +410,8 @@ export default function BankGame() {
       <div style={{ padding: '40px 18px 40px', paddingTop: 'max(env(safe-area-inset-top, 40px), 40px)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ fontSize: 48, marginBottom: 4 }}>🏆</div>
-          <div style={{ fontSize: 38, fontWeight: 900, color: T.gold, letterSpacing: -1, fontFamily: "'Impact', fantasy" }}>
-            FINAL SCORES
+          <div style={{ fontSize: 32, fontWeight: 900, color: T.gold, letterSpacing: -1, fontFamily: "'Impact', fantasy" }}>
+            WHO BANKED HARDEST?
           </div>
         </div>
         {players.map((p, i) => (
@@ -541,7 +546,7 @@ export default function BankGame() {
               cursor: 'pointer', fontFamily: "'Impact', fantasy", letterSpacing: 1,
               boxShadow: `0 0 28px ${T.gGlow}`,
             }}>
-              {round >= totalR ? '🏆 FINAL RESULTS' : `START ROUND ${round + 1} →`}
+              {round >= totalR ? '🏆 SEE WHO WON' : `START ROUND ${round + 1} →`}
             </button>
           </div>
         )}
@@ -568,7 +573,7 @@ export default function BankGame() {
               background: T.rFade, color: T.red, fontWeight: 700, fontSize: 14,
               cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
             }}>
-              ↩ Redo Last Roll — entered wrong number?
+              ↩ Redo last roll — fat-fingered it?
             </button>
             {isSeven ? (
               <button onClick={() => endRound(snap ?? players, true)} style={{
@@ -616,12 +621,12 @@ export default function BankGame() {
                 </div>
               ) : (
                 <div style={{ color: T.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-                  {cur.name}'s Roll
+                  {cur.name}&apos;s up
                 </div>
               )}
               {early && (
                 <div style={{ color: T.green, fontSize: 12, marginTop: 2 }}>
-                  First 3 rolls: 7 = 70 to the pot
+                  First 3 rolls: a 7 is worth 70
                 </div>
               )}
             </div>
