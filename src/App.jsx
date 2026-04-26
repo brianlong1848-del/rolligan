@@ -1,673 +1,415 @@
-import { useState, useRef, useEffect } from "react";
+const SQRT3_2 = 0.8660254;
 
-const T = {
-  bg: '#060e1c',
-  s1: '#0b1a2f',
-  s2: '#112240',
-  s3: '#162e52',
-  border: '#1c3460',
-  gold: '#f5a623',
-  gFade: 'rgba(245,166,35,0.13)',
-  gGlow: 'rgba(245,166,35,0.35)',
-  green: '#00d97e',
-  nFade: 'rgba(0,217,126,0.12)',
-  red: '#ff4d5a',
-  rFade: 'rgba(255,77,90,0.13)',
-  text: '#cce0f5',
-  sub: '#4d7099',
+const PIP_PATTERNS = {
+  1: [[0.5, 0.5]],
+  2: [[0.27, 0.73], [0.73, 0.27]],
+  3: [[0.27, 0.73], [0.5, 0.5], [0.73, 0.27]],
+  4: [[0.27, 0.73], [0.73, 0.73], [0.27, 0.27], [0.73, 0.27]],
+  5: [[0.27, 0.73], [0.73, 0.73], [0.5, 0.5], [0.27, 0.27], [0.73, 0.27]],
+  6: [[0.27, 0.78], [0.27, 0.5], [0.27, 0.22], [0.73, 0.78], [0.73, 0.5], [0.73, 0.22]],
 };
 
-const KEYS = ['7','8','9','4','5','6','1','2','3','⌫','0','↵'];
+function project(face, u, v, s) {
+  const vx = { x: s * SQRT3_2, y: -s / 2 };
+  const vy = { x: -s * SQRT3_2, y: -s / 2 };
+  const vz = { x: 0, y: -s };
+  if (face === "right") return { x: u * vx.x + v * vz.x, y: u * vx.y + v * vz.y };
+  if (face === "left")  return { x: u * vy.x + v * vz.x, y: u * vy.y + v * vz.y };
+  return { x: vz.x + u * vx.x + v * vy.x, y: vz.y + u * vx.y + v * vy.y };
+}
 
-function NumPad({ val, setVal, onEnter }) {
-  const tap = k => {
-    if (k === '⌫') { setVal(v => v.slice(0, -1)); return; }
-    if (k === '↵') { onEnter(); return; }
-    setVal(v => v.length < 2 ? v + k : v);
-  };
+function IsoDie({ cx, cy, size, faces, idPrefix, pipColor, pipOpacity = 0.92, animClass }) {
+  const s = size;
+  const vx = { x: s * SQRT3_2, y: -s / 2 };
+  const vy = { x: -s * SQRT3_2, y: -s / 2 };
+  const vz = { x: 0, y: -s };
+
+  const right = `M ${cx} ${cy} L ${cx + vx.x} ${cy + vx.y} L ${cx + vx.x + vz.x} ${cy + vx.y + vz.y} L ${cx + vz.x} ${cy + vz.y} Z`;
+  const left  = `M ${cx} ${cy} L ${cx + vy.x} ${cy + vy.y} L ${cx + vy.x + vz.x} ${cy + vy.y + vz.y} L ${cx + vz.x} ${cy + vz.y} Z`;
+  const top   = `M ${cx + vz.x} ${cy + vz.y} L ${cx + vz.x + vx.x} ${cy + vz.y + vx.y} L ${cx + vz.x + vx.x + vy.x} ${cy + vz.y + vx.y + vy.y} L ${cx + vz.x + vy.x} ${cy + vz.y + vy.y} Z`;
+
+  const r = s * 0.058;
+
+  const pipsOn = (face) =>
+    PIP_PATTERNS[faces[face]].map(([u, v], i) => {
+      const p = project(face, u, v, s);
+      return (
+        <circle
+          key={`${face}-${i}`}
+          cx={cx + p.x}
+          cy={cy + p.y}
+          r={r}
+          fill={pipColor}
+          opacity={pipOpacity}
+        />
+      );
+    });
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, padding: '0 12px' }}>
-      {KEYS.map(k => (
-        <button key={k} onClick={() => tap(k)} style={{
-          height: 64, borderRadius: 12, border: 'none',
-          fontSize: k === '↵' || k === '⌫' ? 20 : 26,
-          fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit',
-          background: k === '↵' ? T.gold : k === '⌫' ? T.s2 : T.s3,
-          color: k === '↵' ? '#000' : T.text,
-          boxShadow: k === '↵' ? `0 4px 24px ${T.gGlow}` : 'none',
-        }}>{k}</button>
-      ))}
-    </div>
+    <g className={`die ${animClass}`}>
+      <path d={left}  fill={`url(#${idPrefix}-left)`}  />
+      <path d={right} fill={`url(#${idPrefix}-right)`} />
+      <path d={top}   fill={`url(#${idPrefix}-top)`}   />
+      {/* edge highlights */}
+      <path d={top}   fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+      <path d={right} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" />
+      <path d={left}  fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="1" />
+      {pipsOn("left")}
+      {pipsOn("right")}
+      {pipsOn("top")}
+    </g>
   );
 }
 
-const IBtn = ({ children, onClick, disabled, danger }) => (
-  <button onClick={onClick} disabled={disabled} style={{
-    border: 'none', borderRadius: 8, padding: '6px 10px',
-    cursor: disabled ? 'default' : 'pointer',
-    background: danger ? T.rFade : disabled ? 'transparent' : T.s2,
-    color: danger ? T.red : disabled ? T.sub : T.text,
-    opacity: disabled ? 0.3 : 1, fontSize: 14, fontFamily: 'inherit',
-  }}>{children}</button>
-);
-
-const DragHandle = () => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '6px 10px', flexShrink: 0 }}>
-    <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
-    <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
-    <div style={{ width: 22, height: 3, background: T.sub, borderRadius: 2 }} />
-  </div>
-);
-
-function DraggablePlayerList({ names, setNames }) {
-  const [dragState, setDragState] = useState(null);
-  const dragRef = useRef(null);
-  const namesRef = useRef(names);
-  const itemRefs = useRef([]);
-  useEffect(() => { namesRef.current = names; }, [names]);
-
-  const getClientY = (e) => e.touches ? e.touches[0].clientY : e.clientY;
-  const writeDrag = (v) => { dragRef.current = v; setDragState(v); };
-
-  const startDrag = (e, i) => {
-    e.preventDefault();
-    const el = itemRefs.current[i];
-    const h = el ? el.getBoundingClientRect().height + 8 : 60;
-    writeDrag({ idx: i, startY: getClientY(e), currentY: getClientY(e), itemH: h });
-  };
-
-  const isDragging = dragState !== null;
-  useEffect(() => {
-    if (!isDragging) return;
-    const onMove = (e) => {
-      const ds = dragRef.current;
-      if (!ds) return;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const dy = clientY - ds.startY;
-      const newIdx = Math.max(0, Math.min(namesRef.current.length - 1, ds.idx + Math.round(dy / ds.itemH)));
-      if (newIdx !== ds.idx) {
-        const from = ds.idx;
-        setNames(prev => {
-          const next = [...prev];
-          const [moved] = next.splice(from, 1);
-          next.splice(newIdx, 0, moved);
-          return next;
-        });
-        writeDrag({ ...ds, idx: newIdx, startY: ds.startY + (newIdx - from) * ds.itemH, currentY: clientY });
-      } else {
-        writeDrag({ ...ds, currentY: clientY });
-      }
-    };
-    const onEnd = () => writeDrag(null);
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onEnd);
-    window.addEventListener('touchmove', onMove, { passive: false });
-    window.addEventListener('touchend', onEnd);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onEnd);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('touchend', onEnd);
-    };
-  }, [isDragging]);
-
+function DiceCluster() {
   return (
-    <div>
-      {names.map((n, i) => {
-        const isItemDragging = dragState?.idx === i;
-        const offsetY = isItemDragging ? (dragState.currentY - dragState.startY) : 0;
-        return (
-          <div key={n} ref={el => itemRefs.current[i] = el} style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '13px 10px 13px 4px', marginBottom: 8, borderRadius: 14,
-            background: isItemDragging ? T.s3 : T.s2,
-            border: `1.5px solid ${isItemDragging ? T.gold : T.border}`,
-            transform: `translateY(${offsetY}px) scale(${isItemDragging ? 1.03 : 1})`,
-            boxShadow: isItemDragging ? `0 12px 40px rgba(0,0,0,0.6), 0 0 24px ${T.gGlow}` : 'none',
-            transition: isItemDragging ? 'box-shadow 0.1s, border-color 0.1s' : 'transform 0.2s ease, box-shadow 0.2s',
-            position: 'relative', zIndex: isItemDragging ? 100 : 1, touchAction: 'none', userSelect: 'none',
-          }}>
-            <div onMouseDown={e => startDrag(e, i)} onTouchStart={e => startDrag(e, i)}
-              style={{ cursor: 'grab', touchAction: 'none', flexShrink: 0 }}>
-              <DragHandle />
-            </div>
-            <span style={{ color: T.sub, fontSize: 13, minWidth: 20, textAlign: 'center', fontWeight: 600 }}>{i + 1}</span>
-            <span style={{ flex: 1, fontWeight: 600, fontSize: 16, color: T.text }}>{n}</span>
-            <IBtn danger onClick={() => setNames(a => a.filter((_, j) => j !== i))}>✕</IBtn>
-          </div>
-        );
-      })}
-    </div>
+    <svg
+      className="dice-art"
+      viewBox="0 0 720 720"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        {/* Orange die — glossy primary */}
+        <linearGradient id="orange-top" x1="0" y1="0" x2="0.55" y2="1">
+          <stop offset="0%"  stopColor="#FFB084" />
+          <stop offset="55%" stopColor="#FF8A55" />
+          <stop offset="100%" stopColor="#F2682E" />
+        </linearGradient>
+        <linearGradient id="orange-right" x1="0.1" y1="0" x2="0.5" y2="1">
+          <stop offset="0%"  stopColor="#E25A24" />
+          <stop offset="100%" stopColor="#A33E15" />
+        </linearGradient>
+        <linearGradient id="orange-left" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%"  stopColor="#7E2C0E" />
+          <stop offset="100%" stopColor="#481805" />
+        </linearGradient>
+
+        {/* Mint die */}
+        <linearGradient id="mint-top" x1="0" y1="0" x2="0.55" y2="1">
+          <stop offset="0%"  stopColor="#A8F0E8" />
+          <stop offset="55%" stopColor="#6CDDD2" />
+          <stop offset="100%" stopColor="#3FB8AE" />
+        </linearGradient>
+        <linearGradient id="mint-right" x1="0.1" y1="0" x2="0.5" y2="1">
+          <stop offset="0%"  stopColor="#34A89F" />
+          <stop offset="100%" stopColor="#1F7E76" />
+        </linearGradient>
+        <linearGradient id="mint-left" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%"  stopColor="#155952" />
+          <stop offset="100%" stopColor="#0A3531" />
+        </linearGradient>
+
+        {/* Gloss highlights for top faces */}
+        <linearGradient id="orange2-top" x1="0" y1="0" x2="0.55" y2="1">
+          <stop offset="0%"  stopColor="#FFA070" />
+          <stop offset="55%" stopColor="#FF7740" />
+          <stop offset="100%" stopColor="#E15A20" />
+        </linearGradient>
+        <linearGradient id="orange2-right" x1="0.1" y1="0" x2="0.5" y2="1">
+          <stop offset="0%"  stopColor="#CC4D1E" />
+          <stop offset="100%" stopColor="#8E3210" />
+        </linearGradient>
+        <linearGradient id="orange2-left" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%"  stopColor="#6E2509" />
+          <stop offset="100%" stopColor="#3F1304" />
+        </linearGradient>
+      </defs>
+
+      {/* Soft floor shadow under cluster */}
+      <ellipse cx="360" cy="650" rx="240" ry="22" fill="rgba(0,0,0,0.45)" />
+
+      {/* Mint die — back-left, mid */}
+      <IsoDie
+        cx={170}
+        cy={360}
+        size={140}
+        faces={{ top: 4, right: 6, left: 2 }}
+        idPrefix="mint"
+        pipColor="#FF6B35"
+        animClass="die-b"
+      />
+
+      {/* Smaller orange die — back-right */}
+      <IsoDie
+        cx={555}
+        cy={355}
+        size={120}
+        faces={{ top: 2, right: 3, left: 1 }}
+        idPrefix="orange2"
+        pipColor="#4ECDC4"
+        animClass="die-c"
+      />
+
+      {/* Big orange die — foreground */}
+      <IsoDie
+        cx={360}
+        cy={580}
+        size={200}
+        faces={{ top: 5, right: 3, left: 2 }}
+        idPrefix="orange"
+        pipColor="#4ECDC4"
+        animClass="die-a"
+      />
+    </svg>
   );
 }
 
-export default function BankGame() {
-  const [phase, setPhase] = useState('setup');
-  const [names, setNames] = useState([]);
-  const [nameInp, setNameInp] = useState('');
-  const [roundPref, setRoundPref] = useState(10);
-  const [customR, setCustomR] = useState('');
-  const [usingCustom, setUsingCustom] = useState(false);
-  const [round, setRound] = useState(1);
-  const [players, setPlayers] = useState([]);
-  const [ci, setCi] = useState(0);           // whose turn it is to ROLL — never changes on tap
-  const [dice, setDice] = useState('');
-  const [scr, setScr] = useState('roll');
-  const [rolled, setRolled] = useState(null);
-  const [note, setNote] = useState('');
-  const [rdNote, setRdNote] = useState('');
-  const [snap, setSnap] = useState(null);
-  const [preRoll, setPreRoll] = useState(null);
-  const [bankTarget, setBankTarget] = useState(null); // which player tapped to bank
-  const [rollCount, setRollCount] = useState(0);      // rolls completed this round
-  const [lastRoll, setLastRoll] = useState(null);     // { name, value, note } for inline recap
+function PipMark() {
+  return (
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="32" height="32" rx="6" fill="#1A1A20" stroke="rgba(248,247,244,0.15)" />
+      <circle cx="11" cy="16" r="5.5" fill="#FF6B35" />
+      <circle cx="22" cy="10" r="3.2" fill="#4ECDC4" />
+      <circle cx="22" cy="22" r="3.2" fill="#4ECDC4" />
+    </svg>
+  );
+}
 
-  const totalR = usingCustom && customR ? (parseInt(customR) || 10) : roundPref;
-  const early = rollCount < 3;                        // first 3 rolls of any round — banking locked
-  const cur = players[ci] ?? {};
-  // The player we're banking for — either tapped player or current roller
-  const bankIdx = bankTarget !== null ? bankTarget : ci;
-  const bankPlayer = players[bankIdx] ?? {};
+function PhoneFrame() {
+  return (
+    <svg
+      className="phone-frame"
+      viewBox="0 0 280 580"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="phone-screen" x1="0" y1="0" x2="0.6" y2="1">
+          <stop offset="0%"  stopColor="#1A1A20" />
+          <stop offset="60%" stopColor="#16161B" />
+          <stop offset="100%" stopColor="#0F0F13" />
+        </linearGradient>
+        <radialGradient id="phone-glow" cx="50%" cy="35%" r="60%">
+          <stop offset="0%"  stopColor="rgba(255,107,53,0.18)" />
+          <stop offset="60%" stopColor="rgba(255,107,53,0.04)" />
+          <stop offset="100%" stopColor="rgba(255,107,53,0)" />
+        </radialGradient>
+      </defs>
 
-  const addName = () => {
-    const n = nameInp.trim();
-    if (!n || names.length >= 10) return;
-    setNames(a => [...a, n]);
-    setNameInp('');
-  };
+      {/* Outer frame */}
+      <rect x="6" y="6" width="268" height="568" rx="42" ry="42"
+        fill="#1A1A20"
+        stroke="rgba(78, 205, 196, 0.55)"
+        strokeWidth="2" />
 
-  const startGame = () => {
-    if (names.length < 2) return;
-    const ps = names.map((name, id) => ({ id, name, bankPts: 0, roundPts: 0, banked: false }));
-    setPlayers(ps);
-    setRound(1); setCi(0); setDice(''); setScr('roll');
-    setRolled(null); setNote(''); setRdNote('');
-    setSnap(null); setPreRoll(null); setBankTarget(null); setRollCount(0); setLastRoll(null);
-    setPhase('game');
-  };
+      {/* Inner screen */}
+      <rect x="14" y="14" width="252" height="552" rx="34" ry="34" fill="url(#phone-screen)" />
+      <rect x="14" y="14" width="252" height="552" rx="34" ry="34" fill="url(#phone-glow)" />
 
-  const nextCI = (ps, from) => {
-    for (let c = 1; c <= ps.length; c++) {
-      const i = (from + c) % ps.length;
-      if (!ps[i].banked) return i;
-    }
-    return -1;
-  };
+      {/* Notch */}
+      <rect x="105" y="22" width="70" height="22" rx="11" fill="#0A0A0E" />
 
-  const endRound = (ps, sevened) => {
-    const final = ps.map(p => ({
-      ...p,
-      bankPts: p.bankPts,
-      roundPts: 0,
-      banked: false,
-    })).sort((a, b) => b.bankPts - a.bankPts);
-    setPlayers(final); setCi(0); setSnap(null); setPreRoll(null); setBankTarget(null); setLastRoll(null);
-    setRdNote(sevened
-      ? "💥 Seven. Anyone who didn't bank just lost everything."
-      : '✅ Round done. Standings updated.');
-    setScr('roundEnd'); setRolled(null); setNote(''); setDice('');
-  };
+      {/* Wordmark inside */}
+      <text x="140" y="290"
+        textAnchor="middle"
+        fill="#FF6B35"
+        fontFamily="Impact, 'Arial Black', sans-serif"
+        fontWeight="900"
+        fontSize="46"
+        letterSpacing="-1">Rolligan</text>
+      <text x="140" y="320"
+        textAnchor="middle"
+        fill="#4ECDC4"
+        fontFamily="Inter, system-ui, sans-serif"
+        fontWeight="600"
+        fontSize="9"
+        letterSpacing="2.2">PUSH YOUR LUCK</text>
 
-  const advance = (ps, from) => {
-    setBankTarget(null);
-    if (ps.every(p => p.banked)) { endRound(ps, false); return; }
-    const n = nextCI(ps, from);
-    if (n === -1) { endRound(ps, false); return; }
-    setCi(n); setDice(''); setScr('roll'); setRolled(null); setNote(''); setSnap(null);
-  };
+      {/* Mock pip cluster */}
+      <g transform="translate(140, 360)">
+        <circle cx="-22" cy="0" r="5" fill="#FF6B35" opacity="0.9" />
+        <circle cx="0"   cy="0" r="5" fill="#4ECDC4" opacity="0.9" />
+        <circle cx="22"  cy="0" r="5" fill="#FF6B35" opacity="0.9" />
+      </g>
 
-  // Tap a player row — sets bankTarget so BANK button banks for them
-  // Does NOT change whose turn it is to roll (ci stays the same)
-  const tapPlayer = (i) => {
-    if (scr !== 'roll' || early) return;
-    if (players[i]?.banked) return;
-    setBankTarget(i === bankTarget ? null : i); // toggle off if tapped again
-  };
+      {/* Mock CTA */}
+      <rect x="60" y="430" width="160" height="44" rx="22" fill="#FF6B35" />
+      <text x="140" y="458"
+        textAnchor="middle"
+        fill="#1A1A20"
+        fontFamily="Inter, system-ui, sans-serif"
+        fontWeight="800"
+        fontSize="13"
+        letterSpacing="1">ROLL</text>
 
-  // Bank for bankTarget (or current roller if no target selected)
-  const doBank = () => {
-    const idx = bankTarget !== null ? bankTarget : ci;
-    const ps = players.map((p, i) => i === idx
-      ? { ...p, bankPts: p.bankPts + p.roundPts, roundPts: 0, banked: true }
-      : p);
-    setPlayers(ps);
-    setBankTarget(null);
-    // Only advance the roller turn if the roller just banked
-    if (idx === ci) {
-      advance(ps, ci);
-    } else {
-      // Someone else banked — check if everyone is now banked
-      if (ps.every(p => p.banked)) { endRound(ps, false); }
-      // else stay on current roller's turn
-    }
-  };
+      {/* Bottom bar */}
+      <rect x="100" y="540" width="80" height="4" rx="2" fill="rgba(248, 247, 244, 0.35)" />
+    </svg>
+  );
+}
 
-  const doDoubles = () => {
-    const ps = players.map((p, i) => i === ci ? { ...p, bankPts: p.bankPts * 2 } : p);
-    setPlayers(ps); setSnap(null); setBankTarget(null);
-    advance(ps, ci);
-  };
-
-  const doRoll = () => {
-    const v = parseInt(dice);
-    if (!dice || isNaN(v) || v < 2 || v > 12) return;
-    setPreRoll({ players: JSON.parse(JSON.stringify(players)), ci, rollCount, lastRoll });
-    setBankTarget(null);
-    setDice('');
-    setRollCount(c => c + 1);
-    const rollerName = players[ci]?.name ?? '';
-
-    // Round-ending seven: only after the first 3 rolls. Show the splash screen so
-    // the user can confirm (or redo if it was a typo).
-    if (!early && v === 7) {
-      const ps = players.map(p => p.banked ? p : { ...p, roundPts: 0 });
-      setPlayers(ps); setSnap(ps);
-      setRolled(v);
-      setNote("💥 Seven. Round's over — un-banked points wiped.");
-      setScr('rolled');
-      return;
-    }
-
-    let ps;
-    let noteText;
-    if (early) {
-      const pts = v === 7 ? 70 : v;
-      ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + pts });
-      noteText = v === 7 ? `🎲 Lucky 7 — +70 to the pot` : `+${pts} to the pot`;
-    } else {
-      ps = players.map(p => p.banked ? p : { ...p, roundPts: p.roundPts + v });
-      noteText = `+${v} to the pot`;
-    }
-    setPlayers(ps); setSnap(ps);
-    setLastRoll({ name: rollerName, value: v, note: noteText });
-    advance(ps, ci);
-  };
-
-  const doNext = () => { setBankTarget(null); advance(snap ?? players, ci); };
-
-  const doRedoRoll = () => {
-    if (!preRoll) return;
-    setPlayers(preRoll.players); setCi(preRoll.ci);
-    setRollCount(preRoll.rollCount ?? 0);
-    setLastRoll(preRoll.lastRoll ?? null);
-    setDice(''); setScr('roll');
-    setRolled(null); setNote(''); setSnap(null); setPreRoll(null); setBankTarget(null);
-  };
-
-  const doNextRound = () => {
-    if (round >= totalR) { setPhase('end'); return; }
-    setRound(r => r + 1);
-    setScr('roll'); setNote(''); setRdNote('');
-    setDice(''); setRolled(null); setSnap(null); setPreRoll(null); setBankTarget(null);
-    setRollCount(0); setLastRoll(null);
-  };
-
-  // A 7 only ends the round if it was rolled AFTER the first 3 rolls.
-  // During the 3rd roll itself, `early` flips to false post-increment, so gate on rollCount.
-  const isSeven = rollCount > 3 && scr === 'rolled' && rolled === 7;
-  const manyPlayers = players.length > 6;
-  const rowPad = manyPlayers ? '6px 10px' : '9px 13px';
-  const rowFont = manyPlayers ? 12 : 14;
-  const scoreFont = manyPlayers ? 16 : 20;
-
-  const wrap = {
-    background: T.bg, minHeight: '100vh', width: '100%',
-    fontFamily: "'Trebuchet MS', 'Segoe UI', sans-serif",
-    color: T.text, userSelect: 'none', overflowX: 'hidden',
-  };
-
-  // ══ SETUP ══
-  if (phase === 'setup') return (
-    <div style={wrap}>
-      <div style={{ padding: '28px 18px 40px', paddingTop: 'max(env(safe-area-inset-top, 28px), 28px)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 26 }}>
-          <div style={{
-            fontSize: 64, fontWeight: 900, color: T.gold, letterSpacing: -2, lineHeight: 1,
-            fontFamily: "'Impact', 'Arial Black', fantasy", textShadow: `0 0 60px ${T.gGlow}`,
-          }}>Rolligan</div>
-          <div style={{ color: T.sub, fontSize: 11, letterSpacing: 5, textTransform: 'uppercase', marginTop: 4 }}>
-            Push your luck
-          </div>
+function Nav() {
+  return (
+    <nav className="nav" aria-label="Primary">
+      <div className="nav-inner">
+        <a href="#top" className="nav-logo" aria-label="Rolligan home">
+          <span className="nav-dot" aria-hidden="true" />
+          Rolligan
+        </a>
+        <div className="nav-links">
+          <a href="#how">How it works</a>
+          <a href="#about">About</a>
+          <a href="#ios" className="pill-cta pill-cta-sm">Notify me</a>
         </div>
-
-        <div style={{ background: T.s1, borderRadius: 20, padding: 18, marginBottom: 14 }}>
-          <div style={{ color: T.sub, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Rollers{names.length > 0 ? ` · ${names.length}/10` : ' (max 10)'}</span>
-            {names.length > 1 && <span style={{ color: T.border, fontWeight: 400, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>☰ drag to reorder</span>}
-          </div>
-          <DraggablePlayerList names={names} setNames={setNames} />
-          {names.length === 0 && (
-            <div style={{ color: T.sub, fontSize: 14, textAlign: 'center', padding: '14px 0 4px' }}>
-              Who&apos;s rolling tonight?
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: 8, marginTop: names.length ? 10 : 0 }}>
-            <input value={nameInp} onChange={e => setNameInp(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addName()}
-              placeholder={names.length >= 10 ? "Table's full — 10 max" : 'Add a roller...'}
-              disabled={names.length >= 10} autoComplete="off"
-              style={{
-                flex: 1, padding: '13px 15px', borderRadius: 12,
-                border: `1px solid ${T.border}`, background: T.s2,
-                color: T.text, fontSize: 16, outline: 'none', fontFamily: 'inherit',
-                opacity: names.length >= 10 ? 0.4 : 1,
-              }} />
-            <button onClick={addName} disabled={names.length >= 10} style={{
-              padding: '0 22px', borderRadius: 12, border: 'none',
-              background: names.length >= 10 ? T.s2 : T.gold,
-              color: names.length >= 10 ? T.sub : '#000',
-              fontWeight: 700, fontSize: 15,
-              cursor: names.length >= 10 ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-            }}>Add</button>
-          </div>
-        </div>
-
-        <div style={{ background: T.s1, borderRadius: 20, padding: 18, marginBottom: 22 }}>
-          <div style={{ color: T.sub, fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>
-            Number of Rounds
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-            {[10, 12, 15].map(r => {
-              const active = !usingCustom && roundPref === r;
-              return (
-                <button key={r} onClick={() => { setRoundPref(r); setUsingCustom(false); setCustomR(''); }} style={{
-                  padding: '16px 0', borderRadius: 12, border: `2px solid ${active ? T.gold : T.border}`,
-                  background: active ? T.gFade : T.s2, color: active ? T.gold : T.text,
-                  fontWeight: 900, fontSize: 26, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: active ? `0 0 16px ${T.gGlow}` : 'none', transition: 'all 0.15s',
-                }}>{r}</button>
-              );
-            })}
-          </div>
-          <input type="text" inputMode="numeric" pattern="[0-9]*" value={customR}
-            onChange={e => { const v = e.target.value.replace(/\D/g, ''); setCustomR(v); setUsingCustom(!!v); }}
-            placeholder="Custom number of rounds..."
-            style={{
-              width: '100%', padding: '13px 15px', borderRadius: 12, boxSizing: 'border-box',
-              border: `2px solid ${usingCustom ? T.gold : T.border}`,
-              background: T.s2, color: T.text, fontSize: 16, outline: 'none', fontFamily: 'inherit',
-            }} />
-        </div>
-
-        <button onClick={startGame} disabled={names.length < 2} style={{
-          width: '100%', padding: 20, borderRadius: 16, border: 'none',
-          background: names.length >= 2 ? T.gold : T.s2,
-          color: names.length >= 2 ? '#000' : T.sub,
-          fontWeight: 900, fontSize: 18, letterSpacing: 1,
-          cursor: names.length >= 2 ? 'pointer' : 'not-allowed',
-          fontFamily: "'Impact', 'Arial Black', fantasy",
-          boxShadow: names.length >= 2 ? `0 0 32px ${T.gGlow}` : 'none', transition: 'all 0.2s',
-        }}>
-          {names.length < 2 ? 'Need at least 2 rollers' : '▶  ROLL OUT'}
-        </button>
       </div>
-    </div>
+    </nav>
   );
+}
 
-  // ══ END ══
-  if (phase === 'end') return (
-    <div style={wrap}>
-      <div style={{ padding: '40px 18px 40px', paddingTop: 'max(env(safe-area-inset-top, 40px), 40px)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 48, marginBottom: 4 }}>🏆</div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: T.gold, letterSpacing: -1, fontFamily: "'Impact', fantasy" }}>
-            WHO BANKED HARDEST?
+function Hero() {
+  return (
+    <section className="hero" id="top" aria-labelledby="hero-h">
+      <div className="hero-grid">
+        <div className="hero-text">
+          <p className="tracker">Push your luck · A dice party game</p>
+          <h1 id="hero-h" className="wordmark">Rolligan</h1>
+          <p className="hook">The dice game we play when no one's paying attention.</p>
+          <p className="hero-sub">For 2–10 people. iOS coming soon.</p>
+          <div className="cta-row">
+            <a href="#ios" className="pill-cta">Notify me ↓</a>
+            <a href="#how" className="pill-cta pill-outline">How it works ↓</a>
           </div>
         </div>
-        {players.map((p, i) => (
-          <div key={p.id} style={{
-            display: 'flex', alignItems: 'center', gap: 14,
-            padding: '14px 18px', marginBottom: 8, borderRadius: 14,
-            background: i === 0 ? T.gFade : T.s1,
-            border: `2px solid ${i === 0 ? T.gold : T.border}`,
-            boxShadow: i === 0 ? `0 0 24px ${T.gGlow}` : 'none',
-          }}>
-            <span style={{ fontSize: 22, minWidth: 30, textAlign: 'center' }}>
-              {['🥇','🥈','🥉'][i] ?? `${i + 1}.`}
+        <div className="hero-visual">
+          <DiceCluster />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WhyPlay() {
+  return (
+    <section className="section" aria-labelledby="why-h">
+      <div className="page">
+        <p className="tracker">01 — Why play</p>
+        <h2 id="why-h">A game for the table, not the spreadsheet.</h2>
+        <p>
+          Rolligan is the game we play when no one's paying attention. We bring it out when friends
+          are drinking, the conversation's loose, and nobody wants to think about strategy. Roll the
+          dice, build the pot, bank your points before someone rolls a 7. That's it.
+        </p>
+        <p>
+          It doesn't punish you for being half-checked-out. The tension comes free — every roll,
+          you're either pushing your luck or you're not, and either choice will get a reaction at
+          the table.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  const steps = [
+    { n: "01", title: "Roll", body: "On your turn, roll two dice as many times as you dare." },
+    { n: "02", title: "Build the pot", body: "Every roll that isn't a 7 adds points to the pot in front of you." },
+    { n: "03", title: "Bank or bust", body: "Bank to keep what you've got. Roll a 7 and you lose it all." },
+  ];
+  return (
+    <section className="section section--alt" id="how" aria-labelledby="how-h">
+      <div className="page">
+        <p className="tracker">02 — How it works</p>
+        <h2 id="how-h">Three moves. That's the whole game.</h2>
+        <ol className="steps-grid">
+          {steps.map((s) => (
+            <li key={s.n} className="step-card">
+              <span className="step-n">{s.n}</span>
+              <strong>{s.title}</strong>
+              <span className="step-body">{s.body}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function ComingToIOS() {
+  const subject = encodeURIComponent("Notify me when Rolligan launches");
+  return (
+    <section className="section" id="ios" aria-labelledby="ios-h">
+      <div className="page">
+        <p className="tracker">03 — Coming soon</p>
+        <div className="ios-grid">
+          <div className="ios-card">
+            <span className="ios-pill">
+              <span className="ios-pill-dot" aria-hidden="true" />
+              Coming to iOS
             </span>
-            <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: i === 0 ? T.gold : T.text }}>{p.name}</span>
-            <span style={{ fontSize: 28, fontWeight: 900, color: i === 0 ? T.gold : T.text }}>{p.bankPts}</span>
+            <h2 id="ios-h">Get notified when we launch.</h2>
+            <p className="ios-lede">
+              One email when the iOS app is ready. No newsletter, no spam.
+            </p>
+            <form
+              action={`mailto:hello@rolligan.com?subject=${subject}`}
+              method="post"
+              encType="text/plain"
+              className="capture-form"
+            >
+              <label htmlFor="email">Your email</label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                required
+              />
+              <button type="submit" className="pill-cta">Notify me</button>
+            </form>
+            <p className="micro">We'll email you once. No newsletter, no spam.</p>
           </div>
-        ))}
-        <button onClick={() => { setPhase('setup'); setNames([]); setNameInp(''); setCustomR(''); setUsingCustom(false); }} style={{
-          width: '100%', marginTop: 20, padding: 18, borderRadius: 16, border: 'none',
-          background: T.gold, color: '#000', fontWeight: 900, fontSize: 18,
-          cursor: 'pointer', fontFamily: "'Impact', fantasy", letterSpacing: 1,
-          boxShadow: `0 0 32px ${T.gGlow}`,
-        }}>↩  PLAY AGAIN</button>
+          <div className="ios-visual">
+            <PhoneFrame />
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
+}
 
-  // ══ GAME ══
+function About() {
   return (
-    <div style={wrap}>
-
-      {/* Top bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 18px',
-        paddingTop: 'max(env(safe-area-inset-top, 10px), 10px)',
-        background: T.s1, borderBottom: `1px solid ${T.border}`,
-      }}>
-        <div>
-          <div style={{ color: T.sub, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' }}>Round</div>
-          <div style={{ color: T.gold, fontSize: 24, fontWeight: 900, lineHeight: 1 }}>
-            {round}<span style={{ color: T.sub, fontSize: 12, fontWeight: 400 }}> / {totalR}</span>
-          </div>
-        </div>
-        <div style={{
-          padding: '5px 12px', borderRadius: 20,
-          background: early ? T.rFade : T.gFade,
-          border: `1px solid ${early ? T.red : T.gold}`,
-          color: early ? T.red : T.gold,
-          fontSize: 11, fontWeight: 700, letterSpacing: 1,
-        }}>
-          {early ? `🔒 ROLL ${Math.min(rollCount + (scr === 'roll' ? 1 : 0), 3)}/3` : '🏦 BANK OPEN'}
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ color: T.sub, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase' }}>Leader</div>
-          <div style={{ color: T.gold, fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{players[0]?.bankPts ?? 0}</div>
-        </div>
+    <section className="section section--alt" id="about" aria-labelledby="about-h">
+      <div className="page">
+        <p className="tracker">04 — Who builds it</p>
+        <h2 id="about-h">An independent studio in Chicago.</h2>
+        <p>
+          Rolligan is made by{" "}
+          <a href="https://clarendon.dev" target="_blank" rel="noreferrer">Clarendon Labs</a> — an
+          independent app studio building games, home tools, and everyday utilities. One well-made
+          app at a time.
+        </p>
       </div>
+    </section>
+  );
+}
 
-      {/* Scoreboard */}
-      <div style={{ padding: '8px 12px 4px' }}>
-        {scr === 'roll' && (
-          <div style={{ color: early ? T.red : T.sub, fontSize: 10, textAlign: 'center', marginBottom: 4, letterSpacing: 1 }}>
-            {early ? `BANKING LOCKED — ${3 - rollCount} ROLL${rollCount === 2 ? '' : 'S'} UNTIL BANK OPENS` : 'TAP ANY PLAYER TO BANK FOR THEM'}
-          </div>
-        )}
-        {players.map((p, i) => {
-          const isRoller = i === ci && scr !== 'roundEnd';
-          const isSelected = i === bankTarget;
-          const canTap = scr === 'roll' && !p.banked;
-
-          let borderColor = T.border;
-          if (isSelected) borderColor = T.green;
-          else if (isRoller) borderColor = T.gold;
-          else if (p.banked) borderColor = T.green + '55';
-
-          let bg = T.s1;
-          if (isSelected) bg = T.nFade;
-          else if (isRoller) bg = T.gFade;
-
-          return (
-            <div key={p.id}
-              onClick={() => canTap && tapPlayer(i)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: rowPad, marginBottom: 4, borderRadius: 10,
-                background: bg,
-                border: `1.5px solid ${borderColor}`,
-                cursor: canTap ? 'pointer' : 'default',
-                transition: 'all 0.15s',
-              }}>
-              {/* Roller indicator */}
-              {isRoller && !isSelected && <span style={{ color: T.gold, fontSize: 10 }}>🎲</span>}
-              {/* Selected to bank indicator */}
-              {isSelected && <span style={{ fontSize: 11 }}>👆</span>}
-              {/* Banked indicator */}
-              {p.banked && <span style={{ fontSize: 11 }}>🏦</span>}
-
-              <span style={{
-                flex: 1, fontSize: rowFont, fontWeight: 600,
-                color: isSelected ? T.green : isRoller ? T.gold : p.banked ? T.sub : T.text,
-              }}>
-                {p.name}
-              </span>
-              {p.roundPts > 0 && !p.banked && (
-                <span style={{ color: T.sub, fontSize: 11, marginRight: 2 }}>+{p.roundPts}</span>
-              )}
-              <span style={{ fontWeight: 900, fontSize: scoreFont, color: i === 0 ? T.gold : T.text, minWidth: 36, textAlign: 'right' }}>
-                {p.bankPts}
-              </span>
-            </div>
-          );
-        })}
+function Footer() {
+  return (
+    <footer>
+      <div className="page footer-inner">
+        <span className="footer-mark">
+          <PipMark />
+          © 2026 Clarendon Labs LLC
+        </span>
+        <span>rolligan.com</span>
       </div>
+    </footer>
+  );
+}
 
-      {/* Action area */}
-      <div style={{ padding: '6px 0 24px' }}>
-
-        {/* ROUND END */}
-        {scr === 'roundEnd' && (
-          <div style={{ padding: '14px 16px', textAlign: 'center' }}>
-            <div style={{
-              background: T.s1, borderRadius: 20, padding: '20px', marginBottom: 14,
-              border: `1px solid ${rdNote.includes('Seven') ? T.red + '55' : T.green + '55'}`,
-            }}>
-              <div style={{ fontSize: 36, marginBottom: 6 }}>{rdNote.includes('Seven') ? '💥' : '✅'}</div>
-              <div style={{ color: T.text, fontSize: 14 }}>{rdNote}</div>
-            </div>
-            <button onClick={doNextRound} style={{
-              width: '100%', padding: 18, borderRadius: 16, border: 'none',
-              background: T.gold, color: '#000', fontWeight: 900, fontSize: 18,
-              cursor: 'pointer', fontFamily: "'Impact', fantasy", letterSpacing: 1,
-              boxShadow: `0 0 28px ${T.gGlow}`,
-            }}>
-              {round >= totalR ? '🏆 SEE WHO WON' : `START ROUND ${round + 1} →`}
-            </button>
-          </div>
-        )}
-
-        {/* ROLLED */}
-        {scr === 'rolled' && (
-          <div style={{ padding: '10px 14px' }}>
-            <div style={{
-              background: T.s1, borderRadius: 18, padding: '16px', textAlign: 'center', marginBottom: 12,
-              border: `1px solid ${isSeven ? T.red + '60' : T.gold + '45'}`,
-              boxShadow: isSeven ? `0 0 30px ${T.rFade}` : `0 0 20px ${T.gFade}`,
-            }}>
-              <div style={{ color: T.sub, fontSize: 12, marginBottom: 2 }}>{cur.name} rolled</div>
-              <div style={{
-                fontSize: 72, fontWeight: 900, lineHeight: 1,
-                color: isSeven ? T.red : T.gold,
-                textShadow: isSeven ? `0 0 40px ${T.red}` : `0 0 40px ${T.gGlow}`,
-                fontFamily: "'Impact', fantasy",
-              }}>{rolled}</div>
-              {note && <div style={{ color: T.text, fontSize: 14, marginTop: 8 }}>{note}</div>}
-            </div>
-            <button onClick={doRedoRoll} style={{
-              width: '100%', padding: 12, borderRadius: 12, border: `2px solid ${T.red}`,
-              background: T.rFade, color: T.red, fontWeight: 700, fontSize: 14,
-              cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8,
-            }}>
-              ↩ Redo last roll — fat-fingered it?
-            </button>
-            {isSeven ? (
-              <button onClick={() => endRound(snap ?? players, true)} style={{
-                width: '100%', padding: 16, borderRadius: 12, border: `2px solid ${T.red}`,
-                background: T.rFade, color: T.red, fontWeight: 900, fontSize: 17,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>End Round →</button>
-            ) : (
-              <button onClick={doNext} style={{
-                width: '100%', padding: 16, borderRadius: 12, border: `2px solid ${T.border}`,
-                background: T.s2, color: T.text, fontWeight: 700, fontSize: 16,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>Next Player →</button>
-            )}
-          </div>
-        )}
-
-        {/* ROLL INPUT */}
-        {scr === 'roll' && (
-          <>
-            {lastRoll && (
-              <div style={{
-                margin: '0 12px 8px', padding: '8px 12px', borderRadius: 10,
-                background: T.s1, border: `1px solid ${T.border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-              }}>
-                <div style={{ fontSize: 12, color: T.sub, minWidth: 0, flex: 1 }}>
-                  <span style={{ color: T.text, fontWeight: 700 }}>{lastRoll.name}</span>
-                  {' rolled '}
-                  <span style={{ color: T.gold, fontWeight: 900 }}>{lastRoll.value}</span>
-                  {' · '}{lastRoll.note}
-                </div>
-                <button onClick={doRedoRoll} style={{
-                  padding: '6px 10px', borderRadius: 8, border: `1px solid ${T.red}`,
-                  background: T.rFade, color: T.red, fontSize: 12, fontWeight: 700,
-                  cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
-                }}>↩ Redo</button>
-              </div>
-            )}
-            <div style={{ padding: '2px 16px 8px', textAlign: 'center' }}>
-              {/* Show who we're banking FOR if different from roller */}
-              {bankTarget !== null && bankTarget !== ci ? (
-                <div style={{ color: T.green, fontSize: 13, fontWeight: 700 }}>
-                  Banking for: {players[bankTarget]?.name} · {bankPlayer.bankPts + bankPlayer.roundPts} pts
-                </div>
-              ) : (
-                <div style={{ color: T.gold, fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-                  {cur.name}&apos;s up
-                </div>
-              )}
-              {early && (
-                <div style={{ color: T.green, fontSize: 12, marginTop: 2 }}>
-                  First 3 rolls: a 7 is worth 70
-                </div>
-              )}
-            </div>
-
-            <div style={{ margin: '0 12px 8px', background: T.s1, borderRadius: 14, padding: '10px 16px', textAlign: 'center' }}>
-              <div style={{ color: T.sub, fontSize: 11, marginBottom: 2 }}>Dice Total</div>
-              <div style={{
-                fontSize: 58, fontWeight: 900, lineHeight: 1, minHeight: 58,
-                color: dice ? T.gold : T.border, fontFamily: "'Impact', fantasy",
-                textShadow: dice ? `0 0 30px ${T.gGlow}` : 'none',
-              }}>
-                {dice || '—'}
-              </div>
-            </div>
-
-            {/* BANK — banks for selected player (or roller if none selected). Locked during first 3 rolls. */}
-            {!bankPlayer.banked && !early && (
-              <div style={{ padding: '0 12px 8px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button onClick={doBank} style={{
-                  width: '100%', padding: '13px 0', borderRadius: 12,
-                  border: `2px solid ${T.green}`, background: T.nFade, color: T.green,
-                  fontWeight: 900, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit',
-                }}>
-                  🏦 BANK {bankTarget !== null && bankTarget !== ci ? `${players[bankTarget]?.name}` : ''} — {bankPlayer.bankPts + bankPlayer.roundPts} pts safe
-                </button>
-                <button onClick={doDoubles} style={{
-                  width: '100%', padding: '13px 0', borderRadius: 12,
-                  border: `2px solid ${T.gold}`, background: T.gFade, color: T.gold,
-                  fontWeight: 900, fontSize: 16, cursor: 'pointer', fontFamily: 'inherit',
-                  boxShadow: `0 0 20px ${T.gGlow}`,
-                }}>
-                  🎲🎲 DOUBLES — Double Bank ({cur.bankPts * 2} pts)
-                </button>
-              </div>
-            )}
-
-            <NumPad val={dice} setVal={setDice} onEnter={doRoll} />
-          </>
-        )}
-
-      </div>
-    </div>
+export default function App() {
+  return (
+    <>
+      <Nav />
+      <Hero />
+      <WhyPlay />
+      <HowItWorks />
+      <ComingToIOS />
+      <About />
+      <Footer />
+    </>
   );
 }
