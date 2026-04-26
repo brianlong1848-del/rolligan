@@ -8,7 +8,7 @@
   "homepage": "https://rolligan.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brianlong1848-del/bank-game.git"
+    "url": "git+https://github.com/brianlong1848-del/rolligan.git"
   },
   "scripts": {
     "dev": "vite",
