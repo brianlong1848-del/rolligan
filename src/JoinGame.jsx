@@ -13,8 +13,13 @@ const C = {
 const PLAYER_COLORS = ['#FF6B35', '#4ECDC4', '#F5C24B', '#B084FF', '#FF8FA3',
   '#76D672', '#5BB8FF', '#FF9E64', '#C9B789', '#E25AB8']
 
+// Swift's UUID always serializes UPPERCASE, and the iOS host re-broadcasts each
+// seat id as a Swift UUID. crypto.randomUUID() is lowercase, so we MUST uppercase
+// ours — otherwise our own seat never string-matches in the host's state snapshot
+// (p.id === playerId.current) and we'd time out with "no live game found".
 const newId = () =>
   (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
+    .toUpperCase()
 
 export default function JoinGame() {
   const params = new URLSearchParams(window.location.search)
