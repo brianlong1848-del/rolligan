@@ -1,7 +1,5 @@
 const APP_STORE_URL = "https://apps.apple.com/us/app/rolligan/id6774974562";
 
-const SQRT3_2 = 0.8660254;
-
 function AppStoreBadge({ className = "" }) {
   return (
     <a
@@ -25,158 +23,16 @@ function AppStoreBadge({ className = "" }) {
   );
 }
 
-const PIP_PATTERNS = {
-  1: [[0.5, 0.5]],
-  2: [[0.27, 0.73], [0.73, 0.27]],
-  3: [[0.27, 0.73], [0.5, 0.5], [0.73, 0.27]],
-  4: [[0.27, 0.73], [0.73, 0.73], [0.27, 0.27], [0.73, 0.27]],
-  5: [[0.27, 0.73], [0.73, 0.73], [0.5, 0.5], [0.27, 0.27], [0.73, 0.27]],
-  6: [[0.27, 0.78], [0.27, 0.5], [0.27, 0.22], [0.73, 0.78], [0.73, 0.5], [0.73, 0.22]],
-};
-
-function project(face, u, v, s) {
-  const vx = { x: s * SQRT3_2, y: -s / 2 };
-  const vy = { x: -s * SQRT3_2, y: -s / 2 };
-  const vz = { x: 0, y: -s };
-  if (face === "right") return { x: u * vx.x + v * vz.x, y: u * vx.y + v * vz.y };
-  if (face === "left")  return { x: u * vy.x + v * vz.x, y: u * vy.y + v * vz.y };
-  return { x: vz.x + u * vx.x + v * vy.x, y: vz.y + u * vx.y + v * vy.y };
-}
-
-function IsoDie({ cx, cy, size, faces, idPrefix, pipColor, pipOpacity = 0.92, animClass }) {
-  const s = size;
-  const vx = { x: s * SQRT3_2, y: -s / 2 };
-  const vy = { x: -s * SQRT3_2, y: -s / 2 };
-  const vz = { x: 0, y: -s };
-
-  const right = `M ${cx} ${cy} L ${cx + vx.x} ${cy + vx.y} L ${cx + vx.x + vz.x} ${cy + vx.y + vz.y} L ${cx + vz.x} ${cy + vz.y} Z`;
-  const left  = `M ${cx} ${cy} L ${cx + vy.x} ${cy + vy.y} L ${cx + vy.x + vz.x} ${cy + vy.y + vz.y} L ${cx + vz.x} ${cy + vz.y} Z`;
-  const top   = `M ${cx + vz.x} ${cy + vz.y} L ${cx + vz.x + vx.x} ${cy + vz.y + vx.y} L ${cx + vz.x + vx.x + vy.x} ${cy + vz.y + vx.y + vy.y} L ${cx + vz.x + vy.x} ${cy + vz.y + vy.y} Z`;
-
-  const r = s * 0.058;
-
-  const pipsOn = (face) =>
-    PIP_PATTERNS[faces[face]].map(([u, v], i) => {
-      const p = project(face, u, v, s);
-      return (
-        <circle
-          key={`${face}-${i}`}
-          cx={cx + p.x}
-          cy={cy + p.y}
-          r={r}
-          fill={pipColor}
-          opacity={pipOpacity}
-        />
-      );
-    });
-
+function HeroDice() {
   return (
-    <g className={`die ${animClass}`}>
-      <path d={left}  fill={`url(#${idPrefix}-left)`}  />
-      <path d={right} fill={`url(#${idPrefix}-right)`} />
-      <path d={top}   fill={`url(#${idPrefix}-top)`}   />
-      {/* edge highlights */}
-      <path d={top}   fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
-      <path d={right} fill="none" stroke="rgba(0,0,0,0.18)" strokeWidth="1" />
-      <path d={left}  fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="1" />
-      {pipsOn("left")}
-      {pipsOn("right")}
-      {pipsOn("top")}
-    </g>
-  );
-}
-
-function DiceCluster() {
-  return (
-    <svg
+    <img
       className="dice-art"
-      viewBox="0 0 720 720"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        {/* Orange die — glossy primary */}
-        <linearGradient id="orange-top" x1="0" y1="0" x2="0.55" y2="1">
-          <stop offset="0%"  stopColor="#FFB084" />
-          <stop offset="55%" stopColor="#FF8A55" />
-          <stop offset="100%" stopColor="#F2682E" />
-        </linearGradient>
-        <linearGradient id="orange-right" x1="0.1" y1="0" x2="0.5" y2="1">
-          <stop offset="0%"  stopColor="#E25A24" />
-          <stop offset="100%" stopColor="#A33E15" />
-        </linearGradient>
-        <linearGradient id="orange-left" x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%"  stopColor="#7E2C0E" />
-          <stop offset="100%" stopColor="#481805" />
-        </linearGradient>
-
-        {/* Mint die */}
-        <linearGradient id="mint-top" x1="0" y1="0" x2="0.55" y2="1">
-          <stop offset="0%"  stopColor="#A8F0E8" />
-          <stop offset="55%" stopColor="#6CDDD2" />
-          <stop offset="100%" stopColor="#3FB8AE" />
-        </linearGradient>
-        <linearGradient id="mint-right" x1="0.1" y1="0" x2="0.5" y2="1">
-          <stop offset="0%"  stopColor="#34A89F" />
-          <stop offset="100%" stopColor="#1F7E76" />
-        </linearGradient>
-        <linearGradient id="mint-left" x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%"  stopColor="#155952" />
-          <stop offset="100%" stopColor="#0A3531" />
-        </linearGradient>
-
-        {/* Gloss highlights for top faces */}
-        <linearGradient id="orange2-top" x1="0" y1="0" x2="0.55" y2="1">
-          <stop offset="0%"  stopColor="#FFA070" />
-          <stop offset="55%" stopColor="#FF7740" />
-          <stop offset="100%" stopColor="#E15A20" />
-        </linearGradient>
-        <linearGradient id="orange2-right" x1="0.1" y1="0" x2="0.5" y2="1">
-          <stop offset="0%"  stopColor="#CC4D1E" />
-          <stop offset="100%" stopColor="#8E3210" />
-        </linearGradient>
-        <linearGradient id="orange2-left" x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%"  stopColor="#6E2509" />
-          <stop offset="100%" stopColor="#3F1304" />
-        </linearGradient>
-      </defs>
-
-      {/* Soft floor shadow under cluster */}
-      <ellipse cx="360" cy="650" rx="240" ry="22" fill="rgba(0,0,0,0.45)" />
-
-      {/* Mint die — back-left, mid */}
-      <IsoDie
-        cx={170}
-        cy={360}
-        size={140}
-        faces={{ top: 4, right: 6, left: 2 }}
-        idPrefix="mint"
-        pipColor="#FF6B35"
-        animClass="die-b"
-      />
-
-      {/* Smaller orange die — back-right */}
-      <IsoDie
-        cx={555}
-        cy={355}
-        size={120}
-        faces={{ top: 2, right: 3, left: 1 }}
-        idPrefix="orange2"
-        pipColor="#4ECDC4"
-        animClass="die-c"
-      />
-
-      {/* Big orange die — foreground */}
-      <IsoDie
-        cx={360}
-        cy={580}
-        size={200}
-        faces={{ top: 5, right: 3, left: 2 }}
-        idPrefix="orange"
-        pipColor="#4ECDC4"
-        animClass="die-a"
-      />
-    </svg>
+      src="/hero-dice.png"
+      alt="Three Rolligan dice mid-roll"
+      width="724"
+      height="369"
+      fetchPriority="high"
+    />
   );
 }
 
@@ -249,7 +105,7 @@ function Hero() {
           </div>
         </div>
         <div className="hero-visual">
-          <DiceCluster />
+          <HeroDice />
         </div>
       </div>
     </section>
@@ -263,14 +119,14 @@ function WhyPlay() {
         <p className="tracker">01 — Why play</p>
         <h2 id="why-h">A game for the table, not the spreadsheet.</h2>
         <p>
-          Rolligan is the game we play when no one's paying attention. We bring it out when friends
-          are drinking, the conversation's loose, and nobody wants to think about strategy. Roll the
-          dice, build the pot, bank your points before someone rolls a 7. That's it.
+          Rolligan is the dice game where you can hang out, laugh, and not have to strategize while
+          playing. Bring it out when the conversation's loose and nobody wants to think — roll the
+          dice, build the pot, and bank your points before someone rolls a 7. That's the whole game.
         </p>
         <p>
           It doesn't punish you for being half-checked-out. The tension comes free — every roll,
-          you're either pushing your luck or you're not, and either choice will get a reaction at
-          the table.
+          you're either pushing your luck or banking it, and either choice gets a reaction at the
+          table.
         </p>
       </div>
     </section>
