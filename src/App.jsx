@@ -1,4 +1,29 @@
+const APP_STORE_URL = "https://apps.apple.com/us/app/rolligan/id6774974562";
+
 const SQRT3_2 = 0.8660254;
+
+function AppStoreBadge({ className = "" }) {
+  return (
+    <a
+      className={`app-badge ${className}`}
+      href={APP_STORE_URL}
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Download Rolligan on the App Store"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="app-badge-logo">
+        <path
+          fill="currentColor"
+          d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.45 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+        />
+      </svg>
+      <span className="app-badge-text">
+        <small>Download on the</small>
+        <strong>App Store</strong>
+      </span>
+    </a>
+  );
+}
 
 const PIP_PATTERNS = {
   1: [[0.5, 0.5]],
@@ -166,76 +191,28 @@ function PipMark() {
   );
 }
 
-function PhoneFrame() {
+function PhoneShot() {
   return (
-    <svg
-      className="phone-frame"
-      viewBox="0 0 280 580"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="phone-screen" x1="0" y1="0" x2="0.6" y2="1">
-          <stop offset="0%"  stopColor="#1A1A20" />
-          <stop offset="60%" stopColor="#16161B" />
-          <stop offset="100%" stopColor="#0F0F13" />
-        </linearGradient>
-        <radialGradient id="phone-glow" cx="50%" cy="35%" r="60%">
-          <stop offset="0%"  stopColor="rgba(255,107,53,0.18)" />
-          <stop offset="60%" stopColor="rgba(255,107,53,0.04)" />
-          <stop offset="100%" stopColor="rgba(255,107,53,0)" />
-        </radialGradient>
-      </defs>
-
-      {/* Outer frame */}
-      <rect x="6" y="6" width="268" height="568" rx="42" ry="42"
-        fill="#1A1A20"
-        stroke="rgba(78, 205, 196, 0.55)"
-        strokeWidth="2" />
-
-      {/* Inner screen */}
-      <rect x="14" y="14" width="252" height="552" rx="34" ry="34" fill="url(#phone-screen)" />
-      <rect x="14" y="14" width="252" height="552" rx="34" ry="34" fill="url(#phone-glow)" />
-
-      {/* Notch */}
-      <rect x="105" y="22" width="70" height="22" rx="11" fill="#0A0A0E" />
-
-      {/* Wordmark inside */}
-      <text x="140" y="290"
-        textAnchor="middle"
-        fill="#FF6B35"
-        fontFamily="Impact, 'Arial Black', sans-serif"
-        fontWeight="900"
-        fontSize="46"
-        letterSpacing="-1">Rolligan</text>
-      <text x="140" y="320"
-        textAnchor="middle"
-        fill="#4ECDC4"
-        fontFamily="Inter, system-ui, sans-serif"
-        fontWeight="600"
-        fontSize="9"
-        letterSpacing="2.2">PUSH YOUR LUCK</text>
-
-      {/* Mock pip cluster */}
-      <g transform="translate(140, 360)">
-        <circle cx="-22" cy="0" r="5" fill="#FF6B35" opacity="0.9" />
-        <circle cx="0"   cy="0" r="5" fill="#4ECDC4" opacity="0.9" />
-        <circle cx="22"  cy="0" r="5" fill="#FF6B35" opacity="0.9" />
-      </g>
-
-      {/* Mock CTA */}
-      <rect x="60" y="430" width="160" height="44" rx="22" fill="#FF6B35" />
-      <text x="140" y="458"
-        textAnchor="middle"
-        fill="#1A1A20"
-        fontFamily="Inter, system-ui, sans-serif"
-        fontWeight="800"
-        fontSize="13"
-        letterSpacing="1">ROLL</text>
-
-      {/* Bottom bar */}
-      <rect x="100" y="540" width="80" height="4" rx="2" fill="rgba(248, 247, 244, 0.35)" />
-    </svg>
+    <div className="phone-shot-stack">
+      <div className="phone-shot phone-shot--back">
+        <img
+          src="/app-gameplay.png"
+          alt="Rolligan gameplay — the pot building as players roll"
+          width="320"
+          height="695"
+          loading="lazy"
+        />
+      </div>
+      <div className="phone-shot phone-shot--front">
+        <img
+          src="/app-home.png"
+          alt="Rolligan home screen on iPhone"
+          width="320"
+          height="695"
+          loading="lazy"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -250,7 +227,7 @@ function Nav() {
         <div className="nav-links">
           <a href="#how">How it works</a>
           <a href="#about">About</a>
-          <a href="#ios" className="pill-cta pill-cta-sm">Notify me</a>
+          <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="pill-cta pill-cta-sm">Get the app</a>
         </div>
       </div>
     </nav>
@@ -262,12 +239,12 @@ function Hero() {
     <section className="hero" id="top" aria-labelledby="hero-h">
       <div className="hero-grid">
         <div className="hero-text">
-          <p className="tracker">Push your luck · A dice party game</p>
+          <p className="tracker">Push your luck · Dice party game</p>
           <h1 id="hero-h" className="wordmark">Rolligan</h1>
-          <p className="hook">The dice game we play when no one's paying attention.</p>
-          <p className="hero-sub">For 2–10 people. iOS coming soon.</p>
+          <p className="hook">The dice game where we can hangout, laugh, and not have to strategize while playing.</p>
+          <p className="hero-sub">For 2+ players. Free on the App Store.</p>
           <div className="cta-row">
-            <a href="#ios" className="pill-cta">Notify me ↓</a>
+            <AppStoreBadge />
             <a href="#how" className="pill-cta pill-outline">How it works ↓</a>
           </div>
         </div>
@@ -325,43 +302,26 @@ function HowItWorks() {
   );
 }
 
-function ComingToIOS() {
-  const subject = encodeURIComponent("Notify me when Rolligan launches");
+function GetTheApp() {
   return (
     <section className="section" id="ios" aria-labelledby="ios-h">
       <div className="page">
-        <p className="tracker">03 — Coming soon</p>
+        <p className="tracker">03 — Get the app</p>
         <div className="ios-grid">
           <div className="ios-card">
             <span className="ios-pill">
               <span className="ios-pill-dot" aria-hidden="true" />
-              Coming to iOS
+              Now on iOS
             </span>
-            <h2 id="ios-h">Get notified when we launch.</h2>
+            <h2 id="ios-h">Free on the App Store.</h2>
             <p className="ios-lede">
-              One email when the iOS app is ready. No newsletter, no spam.
+              Download Rolligan, gather two or more friends, and you're playing in under a
+              minute. Everyone joins from their own phone — no account needed.
             </p>
-            <form
-              action={`mailto:hello@rolligan.com?subject=${subject}`}
-              method="post"
-              encType="text/plain"
-              className="capture-form"
-            >
-              <label htmlFor="email">Your email</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-              />
-              <button type="submit" className="pill-cta">Notify me</button>
-            </form>
-            <p className="micro">We'll email you once. No newsletter, no spam.</p>
+            <AppStoreBadge />
           </div>
           <div className="ios-visual">
-            <PhoneFrame />
+            <PhoneShot />
           </div>
         </div>
       </div>
@@ -407,7 +367,7 @@ export default function App() {
       <Hero />
       <WhyPlay />
       <HowItWorks />
-      <ComingToIOS />
+      <GetTheApp />
       <About />
       <Footer />
     </>

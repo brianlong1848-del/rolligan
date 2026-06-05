@@ -443,42 +443,61 @@ img, svg { display: block; }
   margin: 0 0 1.75rem;
   max-width: 44ch;
 }
-.capture-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+/* ---------- APP STORE BADGE ---------- */
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 13px;
+  padding: 0.6rem 1.15rem;
+  text-decoration: none;
+  transition: filter 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
 }
-.capture-form label {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-}
-.capture-form input {
-  background: rgba(13, 13, 17, 0.6);
-  border: 1px solid var(--rule-strong);
-  color: var(--text);
-  padding: 1rem 1.15rem;
-  border-radius: 12px;
-  width: 100%;
-  font-weight: 500;
-}
-.capture-form input::placeholder { color: var(--text-dim); }
-.capture-form input:focus {
-  border-color: var(--accent);
-  background: rgba(13, 13, 17, 0.8);
-}
-.micro {
-  margin: 0.85rem 0 0;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-}
+.app-badge:hover { filter: brightness(1.18); color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.app-badge:active { transform: translateY(1px); }
+.app-badge-logo { width: 1.7rem; height: 1.7rem; flex-shrink: 0; }
+.app-badge-text { display: flex; flex-direction: column; line-height: 1.05; text-align: left; }
+.app-badge-text small { font-size: 0.62rem; font-weight: 500; letter-spacing: 0.01em; opacity: 0.92; }
+.app-badge-text strong { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
 
-.phone-frame {
+/* ---------- REAL APP SCREENSHOTS ---------- */
+.phone-shot-stack {
+  position: relative;
   width: 100%;
-  max-width: 280px;
+  max-width: 360px;
   margin: 0 auto;
-  filter: drop-shadow(0 25px 40px rgba(0, 0, 0, 0.45));
+  padding-bottom: 0.5rem;
+}
+.phone-shot {
+  border-radius: 38px;
+  padding: 7px;
+  background: linear-gradient(160deg, #2b2b34, #131318);
+  border: 1px solid rgba(78, 205, 196, 0.4);
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.5);
+}
+.phone-shot img {
+  width: 100%;
+  height: auto;
+  border-radius: 31px;
+  display: block;
+}
+.phone-shot--front {
+  position: relative;
+  width: 72%;
+  margin-left: auto;
+  z-index: 2;
+}
+.phone-shot--back {
+  position: absolute;
+  top: 1.5rem;
+  left: 0;
+  width: 64%;
+  opacity: 0.92;
+  transform: rotate(-5deg);
+  z-index: 1;
 }
 
 /* ---------- FOOTER ---------- */
@@ -516,15 +535,6 @@ footer::before {
 }
 
 /* ---------- DESKTOP ---------- */
-@media (min-width: 700px) {
-  .capture-form {
-    flex-direction: row;
-    align-items: stretch;
-  }
-  .capture-form input { flex: 1; }
-  .capture-form .pill-cta { white-space: nowrap; }
-}
-
 @media (min-width: 900px) {
   .hero {
     padding: 5rem 2rem 5rem;
