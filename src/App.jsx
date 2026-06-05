@@ -210,7 +210,13 @@ function Footer() {
           <PipMark />
           © 2026 Clarendon Labs LLC
         </span>
-        <span>rolligan.com</span>
+        <span className="footer-links">
+          <a href="/privacy.html">Privacy Policy</a>
+          <span aria-hidden="true">·</span>
+          <a href="mailto:support@clarendon.dev">Support</a>
+          <span aria-hidden="true">·</span>
+          rolligan.com
+        </span>
       </div>
     </footer>
   );

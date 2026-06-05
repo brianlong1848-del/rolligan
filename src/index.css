@@ -518,6 +518,17 @@ footer::before {
   height: 1.35rem;
   flex-shrink: 0;
 }
+.footer-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  color: var(--text-dim);
+}
+.footer-links a {
+  color: var(--text-mid);
+}
+.footer-links a:hover { color: var(--primary); }
 
 /* ---------- DESKTOP ---------- */
 @media (min-width: 900px) {
