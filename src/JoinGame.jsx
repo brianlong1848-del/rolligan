@@ -167,6 +167,50 @@ function Die({ face, body, rollKey }) {
 }
 const shade = (hex) => hex === C.orange ? '#D14E1F' : '#37A89E'
 
+// Round recap on every browser — winner, everyone's points, own row
+// highlighted. The host auto-advances after ~7s; the next broadcast
+// (roundPhase back to readyToRoll) dismisses this automatically.
+function RoundRecap({ game, meId }) {
+  const ranked = [...game.players].sort((a, b) => b.score - a.score)
+  const banked = game.players.filter((p) => (p.bankedThisRound ?? 0) > 0)
+  const top = banked.sort((a, b) => (b.bankedThisRound ?? 0) - (a.bankedThisRound ?? 0))[0]
+  const busted = !!game.roundBusted
+  return (
+    <div style={S.recapWrap}>
+      <div className="recap-card" style={{ ...S.recapCard, borderColor: busted ? C.orange : C.mint }}>
+        <div style={S.tracker}>ROUND {game.round} DONE</div>
+        <div style={{ ...S.recapHead, color: busted ? C.orange : C.mint }}>
+          {busted ? '💥 BUSTED — pot wiped' : '🏦 Everyone banked!'}
+        </div>
+        {top && (
+          <div style={S.recapWinner}>👑 {top.name} +{top.bankedThisRound}</div>
+        )}
+        <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
+          {ranked.map((p, idx) => (
+            <div key={p.id} className="recap-row" style={{
+              ...S.recapRow,
+              animationDelay: `${0.15 + idx * 0.06}s`,
+              background: p.id === meId ? 'rgba(255,107,53,0.16)' : C.panelMuted,
+              border: `1.5px solid ${p.id === meId ? C.orange : 'transparent'}`,
+            }}>
+              <span style={{ ...S.recapRank, background: idx === 0 ? C.orange : C.inkDim }}>{idx + 1}</span>
+              <span style={{ fontWeight: p.id === meId ? 800 : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}{p.id === meId ? ' (you)' : ''}
+              </span>
+              <span style={{ marginLeft: 'auto', fontWeight: 800,
+                color: (p.bankedThisRound ?? 0) > 0 ? C.mint : C.inkDim }}>
+                {(p.bankedThisRound ?? 0) > 0 ? `+${p.bankedThisRound}` : '—'}
+              </span>
+              <span style={{ fontWeight: 800, minWidth: 44, textAlign: 'right' }}>{p.score}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ color: C.inkDim, fontSize: 12, marginTop: 12 }}>Next round starting…</div>
+      </div>
+    </div>
+  )
+}
+
 function LiveGame({ game, me, canBank, bank, roll }) {
   const roller = game.players.find((p) => p.id === game.currentRollerId)
   const virtual = game.diceMode === 'virtual'
@@ -183,6 +227,7 @@ function LiveGame({ game, me, canBank, bank, roll }) {
 
   return (
     <div style={S.live}>
+      {game.roundPhase === 'roundOver' && <RoundRecap game={game} meId={me?.id} />}
       <div style={S.topRow}>
         <span style={S.tracker}>ROUND {game.round} / {game.totalRounds}</span>
         <span style={S.tracker}>{game.players.filter((p) => p.status === 'in').length} IN</span>
@@ -297,6 +342,19 @@ const S = {
   pot: { textAlign: 'center', color: C.orange, fontSize: 72, fontWeight: 800, lineHeight: 1 },
   players: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', margin: '8px 0' },
   diceRow: { display: 'flex', gap: 18, justifyContent: 'center', padding: '6px 0' },
+  recapWrap: { position: 'fixed', inset: 0, zIndex: 80, display: 'flex',
+    alignItems: 'center', justifyContent: 'center', padding: 20,
+    background: 'rgba(10,10,14,0.72)' },
+  recapCard: { width: '100%', maxWidth: 400, background: C.bg, borderRadius: 18,
+    border: '2px solid', padding: '22px 18px', textAlign: 'center',
+    boxShadow: '0 24px 70px rgba(0,0,0,0.55)' },
+  recapHead: { fontSize: 22, fontWeight: 800, marginTop: 8 },
+  recapWinner: { fontSize: 17, fontWeight: 800, marginTop: 6 },
+  recapRow: { display: 'flex', alignItems: 'center', gap: 10, borderRadius: 12,
+    padding: '8px 12px', textAlign: 'left', fontSize: 15 },
+  recapRank: { width: 22, height: 22, borderRadius: 999, flex: 'none',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    color: C.charcoal, fontWeight: 800, fontSize: 12 },
   rollBtn: { marginTop: 'auto', background: C.orange, color: C.charcoal, border: 'none',
     borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 800, letterSpacing: 0.8,
     cursor: 'pointer', boxShadow: `0 0 24px rgba(255,107,53,0.45)` },
