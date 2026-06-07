@@ -231,10 +231,58 @@ function LiveGame({ game, me, canBank, bank, roll }) {
     if (game.rollsThisRound > 0) navigator.vibrate?.(60)
   }, [game.round, game.rollsThisRound])
 
+  // Safe rolls just ended → doubles are live, the bank is open. Announce it.
+  const [dangerSplash, setDangerSplash] = useState(false)
+  const prevSafe = useRef(true)
+  useEffect(() => {
+    const was = prevSafe.current
+    prevSafe.current = game.inSafePhase
+    if (was && !game.inSafePhase && game.phase === 'playing') {
+      setDangerSplash(true)
+      navigator.vibrate?.(80)
+      const t = setTimeout(() => setDangerSplash(false), 2200)
+      return () => clearTimeout(t)
+    }
+  }, [game.inSafePhase, game.phase])
+
+  // The last round just began — now or never.
+  const [finalSplash, setFinalSplash] = useState(false)
+  const finalAnnounced = useRef(false)
+  useEffect(() => {
+    if (game.round === game.totalRounds && game.totalRounds > 1
+        && game.phase === 'playing' && !finalAnnounced.current) {
+      finalAnnounced.current = true
+      setFinalSplash(true)
+      navigator.vibrate?.(80)
+      const t = setTimeout(() => setFinalSplash(false), 2400)
+      return () => clearTimeout(t)
+    }
+  }, [game.round, game.totalRounds, game.phase])
+
   const rollerColor = roller ? (myRoll ? C.orange : colorFor(game, roller.id)) : C.inkDim
   return (
     <div style={S.live}>
       {game.roundPhase === 'roundOver' && <RoundRecap game={game} meId={me?.id} />}
+      {dangerSplash && (
+        <div style={S.dangerWrap}>
+          <div className="rol-danger-pop" style={S.dangerCard}>
+            <div style={{ fontSize: 36 }}>🎲🎲</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>DOUBLES ARE LIVE</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>doubles ×2 the pot · a 7 busts it</div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.orange, marginTop: 2 }}>BANK IS OPEN</div>
+          </div>
+        </div>
+      )}
+      {finalSplash && (
+        <div style={S.dangerWrap}>
+          <div className="rol-danger-pop" style={{ ...S.dangerCard,
+            borderColor: C.mint, boxShadow: '0 0 40px rgba(78,205,196,0.45)' }}>
+            <div style={{ fontSize: 40 }}>🏁</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.orange, letterSpacing: 2 }}>FINAL ROUND</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>last chance — make it count</div>
+          </div>
+        </div>
+      )}
       {/* Round — big and unmissable */}
       <div style={S.roundRow}>
         <span style={S.roundBig}>ROUND {game.round}</span>
@@ -352,21 +400,69 @@ function Leaderboard({ game, meId }) {
   )
 }
 
+// Full-screen game-over celebration: trophy drop, winner glow, confetti, and
+// the final standings staggering in — the web mirror of the iOS WinnerView.
 function Results({ game, meId }) {
   const sorted = [...game.players].sort((a, b) => b.score - a.score)
   const top = sorted[0]?.score ?? 0
+  const winners = sorted.filter((p) => p.score === top)
+  const iWon = winners.some((p) => p.id === meId)
   return (
-    <div style={S.card}>
-      <div style={S.eyebrow}>WINNER</div>
-      <h1 style={{ ...S.wordmark, fontSize: 48 }}>
-        {sorted.filter((p) => p.score === top).map((p) => p.name).join(' & ')}
+    <div style={{ ...S.card, height: '100dvh', boxSizing: 'border-box',
+      overflow: 'hidden', justifyContent: 'center', padding: '24px',
+      display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <Confetti extra={iWon ? ['🏆', '👑', '🎉'] : []} />
+      <div className="win-trophy" style={{ fontSize: 64, textAlign: 'center', lineHeight: 1 }}>🏆</div>
+      <div style={{ ...S.eyebrow, fontSize: 12 }}>{winners.length > 1 ? 'WINNERS' : 'WINNER'}</div>
+      <h1 className="win-name" style={{ ...S.wordmark, fontSize: 44, margin: '2px 0 0' }}>
+        {winners.map((p) => p.name).join(' & ')}
       </h1>
-      <div style={{ color: C.mint, marginBottom: 20 }}>with {top} points</div>
-      {sorted.map((p) => (
-        <div key={p.id} style={{ ...S.resultRow, color: p.score === top ? C.ink : C.inkDim }}>
-          <span>{p.name}{p.id === meId ? ' (you)' : ''}</span>
-          <span style={{ fontWeight: 800, color: p.score === top ? C.orange : C.inkDim }}>{p.score}</span>
-        </div>
+      <div style={{ color: C.mint, textAlign: 'center', fontWeight: 700 }}>
+        with {top} points{iWon ? ' — that’s you! 🎉' : ''}
+      </div>
+      <div style={{ flex: '0 1 auto', minHeight: 0, overflowY: 'auto',
+        display: 'grid', gap: 6, marginTop: 8 }}>
+        {sorted.map((p, idx) => (
+          <div key={p.id} className="recap-row" style={{ ...S.resultRow,
+            animationDelay: `${0.5 + idx * 0.09}s`, marginBottom: 0,
+            border: `1.5px solid ${p.id === meId ? C.orange : 'transparent'}`,
+            color: p.score === top ? C.ink : C.inkDim }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <span style={{ width: 22, height: 22, borderRadius: 999, flex: 'none',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: C.charcoal, fontWeight: 800, fontSize: 12,
+                background: idx === 0 ? C.orange : C.inkDim }}>{idx + 1}</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.score === top ? '👑 ' : ''}{p.name}{p.id === meId ? ' (you)' : ''}
+              </span>
+            </span>
+            <span style={{ fontWeight: 800, color: p.score === top ? C.orange : C.inkDim }}>{p.score}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Celebratory emoji rain for the finale.
+function Confetti({ extra = [] }) {
+  // Pieces are minted ONCE (lazy state init) — random during render upsets
+  // both React and the lint gods.
+  const [pieces] = useState(() => {
+    const glyphs = ['🎉', '🎊', '⭐️', '🥇', '🎲', ...extra]
+    return Array.from({ length: 30 }, (_, i) => ({
+      i,
+      g: glyphs[Math.floor(Math.random() * glyphs.length)],
+      left: Math.random() * 100,
+      delay: Math.random() * 1.6,
+      size: 18 + Math.random() * 26,
+    }))
+  })
+  return (
+    <div className="rol-confetti" aria-hidden="true">
+      {pieces.map((p) => (
+        <span key={p.i} style={{ left: `${p.left}%`, animationDelay: `${p.delay}s`,
+          fontSize: `${p.size}px` }}>{p.g}</span>
       ))}
     </div>
   )
@@ -414,6 +510,11 @@ const S = {
   pot: { textAlign: 'center', color: C.orange, fontSize: 54, fontWeight: 800, lineHeight: 1 },
   players: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', margin: '8px 0' },
   diceRow: { display: 'flex', gap: 14, justifyContent: 'center', padding: '2px 0' },
+  dangerWrap: { position: 'fixed', inset: 0, zIndex: 70, display: 'flex',
+    alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' },
+  dangerCard: { background: 'rgba(26,26,32,0.97)', border: `2px solid ${C.orange}`,
+    borderRadius: 18, padding: '20px 30px', textAlign: 'center', display: 'grid', gap: 4,
+    boxShadow: '0 0 40px rgba(255,107,53,0.45)' },
   recapWrap: { position: 'fixed', inset: 0, zIndex: 80, display: 'flex',
     alignItems: 'center', justifyContent: 'center', padding: 20,
     background: 'rgba(10,10,14,0.72)' },
