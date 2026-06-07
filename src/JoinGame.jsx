@@ -280,7 +280,7 @@ function LiveGame({ game, me, canBank, bank, roll }) {
       )}
 
       <div style={S.potLabel}>POT THIS ROUND</div>
-      <div style={{ ...S.pot, fontSize: virtual ? 56 : 72 }}>{game.pot}</div>
+      <div style={{ ...S.pot, fontSize: virtual ? 42 : 54 }}>{game.pot}</div>
 
       <Leaderboard game={game} meId={me?.id} />
 
@@ -303,32 +303,40 @@ function LiveGame({ game, me, canBank, bank, roll }) {
 // Live leaderboard: rows keep a stable DOM identity (keyed by player) and are
 // POSITIONED by rank via translateY — so when a bank shuffles the standings,
 // rows visibly glide up and down to their new spots.
-const LB_ROW = 50
+const LB_ROW = 44
 function Leaderboard({ game, meId }) {
   const ranked = [...game.players].sort((a, b) => b.score - a.score)
   const rankOf = {}
   ranked.forEach((p, i) => { rankOf[p.id] = i })
   return (
-    <div style={{ position: 'relative', height: game.players.length * LB_ROW, margin: '4px 0' }}>
+    <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto' }}>
+      <div style={{ position: 'relative', height: game.players.length * LB_ROW }}>
       {game.players.map((p) => {
         const banked = p.status === 'banked'
         const rank = rankOf[p.id]
+        const isMe = p.id === meId
+        // The roller's row carries a traveling highlight in THEIR color (the
+        // same color as the up-to-roll banner). Orange always means "you".
+        const isRoller = p.id === game.currentRollerId
+        const rollerColor = colorFor(game, p.id)
         return (
-          <div key={p.id} className="lb-row" style={{
-            position: 'absolute', left: 0, right: 0, top: 0, height: LB_ROW - 8,
+          <div key={p.id} className={`lb-row ${isRoller ? 'lb-roller' : ''}`} style={{
+            position: 'absolute', left: 0, right: 0, top: 0, height: LB_ROW - 6,
             transform: `translateY(${rank * LB_ROW}px)`,
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '0 12px', borderRadius: 12, fontSize: 15, textAlign: 'left',
-            background: p.id === meId ? 'rgba(255,107,53,0.16)' : C.panelMuted,
-            border: `1.5px solid ${p.id === meId ? C.orange : 'transparent'}`,
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '0 10px', borderRadius: 11, fontSize: 14, textAlign: 'left',
+            background: isMe ? 'rgba(255,107,53,0.16)'
+              : isRoller ? `${rollerColor}1f` : C.panelMuted,
+            border: `1.5px solid ${isMe ? C.orange : (isRoller ? rollerColor : 'transparent')}`,
+            '--lbc': isMe ? C.orange : rollerColor,
           }}>
             <span style={{ width: 22, height: 22, borderRadius: 999, flex: 'none',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               color: C.charcoal, fontWeight: 800, fontSize: 12,
               background: rank === 0 ? C.orange : C.inkDim }}>{rank + 1}</span>
-            <span style={{ fontWeight: p.id === meId ? 800 : 600, minWidth: 0,
+            <span style={{ fontWeight: isMe ? 800 : 600, minWidth: 0,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.name}{p.id === meId ? ' (you)' : ''}
+              {isRoller ? '🎲 ' : ''}{p.name}{isMe ? ' (you)' : ''}
             </span>
             <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, flex: 'none',
               color: banked ? C.mint : C.inkDim }}>
@@ -339,6 +347,7 @@ function Leaderboard({ game, meId }) {
           </div>
         )
       })}
+      </div>
     </div>
   )
 }
@@ -384,23 +393,27 @@ const S = {
   secondary: { background: 'transparent', color: C.ink, border: `1.5px solid ${C.rule}`,
     borderRadius: 999, padding: '12px 28px', fontWeight: 600, cursor: 'pointer' },
   hint: { color: C.inkDim, fontSize: 13, textAlign: 'center', marginTop: 4 },
-  live: { width: '100%', maxWidth: 460, padding: '24px 20px 40px', display: 'flex', flexDirection: 'column', gap: 14 },
+  // One screen, no page scroll: the leaderboard is the only flexible region
+  // (it scrolls internally only when the roster outgrows the space).
+  live: { width: '100%', maxWidth: 460, padding: '12px 18px 14px',
+    display: 'flex', flexDirection: 'column', gap: 10,
+    height: '100dvh', boxSizing: 'border-box', overflow: 'hidden' },
   topRow: { display: 'flex', justifyContent: 'space-between' },
   tracker: { color: C.inkDim, fontSize: 11, fontWeight: 600, letterSpacing: 1.6 },
-  roundRow: { display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 },
-  roundBig: { fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: C.ink },
-  rollerBanner: { display: 'flex', alignItems: 'center', gap: 10, borderRadius: 14,
-    border: '2px solid', padding: '8px 12px' },
-  rollerAvatar: { width: 34, height: 34, borderRadius: 999, flex: 'none',
+  roundRow: { display: 'flex', alignItems: 'baseline', gap: 8 },
+  roundBig: { fontSize: 20, fontWeight: 800, letterSpacing: -0.5, color: C.ink },
+  rollerBanner: { display: 'flex', alignItems: 'center', gap: 10, borderRadius: 13,
+    border: '2px solid', padding: '6px 12px' },
+  rollerAvatar: { width: 30, height: 30, borderRadius: 999, flex: 'none',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    color: C.charcoal, fontWeight: 800, fontSize: 15 },
-  banner: { borderRadius: 999, padding: '8px 14px', fontWeight: 800, fontSize: 14, textAlign: 'center' },
+    color: C.charcoal, fontWeight: 800, fontSize: 14 },
+  banner: { borderRadius: 999, padding: '6px 12px', fontWeight: 800, fontSize: 13, textAlign: 'center' },
   roller: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16 },
   dot: { width: 12, height: 12, borderRadius: 6, display: 'inline-block' },
-  potLabel: { textAlign: 'center', color: C.inkDim, fontSize: 11, letterSpacing: 1.6, fontWeight: 600, marginTop: 8 },
-  pot: { textAlign: 'center', color: C.orange, fontSize: 72, fontWeight: 800, lineHeight: 1 },
+  potLabel: { textAlign: 'center', color: C.inkDim, fontSize: 10, letterSpacing: 1.6, fontWeight: 600 },
+  pot: { textAlign: 'center', color: C.orange, fontSize: 54, fontWeight: 800, lineHeight: 1 },
   players: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', margin: '8px 0' },
-  diceRow: { display: 'flex', gap: 18, justifyContent: 'center', padding: '6px 0' },
+  diceRow: { display: 'flex', gap: 14, justifyContent: 'center', padding: '2px 0' },
   recapWrap: { position: 'fixed', inset: 0, zIndex: 80, display: 'flex',
     alignItems: 'center', justifyContent: 'center', padding: 20,
     background: 'rgba(10,10,14,0.72)' },
@@ -414,12 +427,12 @@ const S = {
   recapRank: { width: 22, height: 22, borderRadius: 999, flex: 'none',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     color: C.charcoal, fontWeight: 800, fontSize: 12 },
-  rollBtn: { marginTop: 'auto', background: C.orange, color: C.charcoal, border: 'none',
-    borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 800, letterSpacing: 0.8,
+  rollBtn: { background: C.orange, color: C.charcoal, border: 'none', flex: 'none',
+    borderRadius: 999, padding: '13px', fontSize: 15, fontWeight: 800, letterSpacing: 0.8,
     cursor: 'pointer', boxShadow: `0 0 24px rgba(255,107,53,0.45)` },
   playerChip: { borderRadius: 12, padding: '8px 12px', textAlign: 'center', minWidth: 64 },
-  bank: { marginTop: 'auto', background: C.mint, color: C.charcoal, border: 'none',
-    borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 800, letterSpacing: 0.8, cursor: 'pointer' },
+  bank: { background: C.mint, color: C.charcoal, border: 'none', flex: 'none',
+    borderRadius: 999, padding: '13px', fontSize: 15, fontWeight: 800, letterSpacing: 0.8, cursor: 'pointer' },
   resultRow: { display: 'flex', justifyContent: 'space-between', padding: '12px 14px',
     background: C.panelMuted, borderRadius: 12, marginBottom: 6 },
 }
