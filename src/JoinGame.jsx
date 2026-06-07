@@ -24,11 +24,15 @@ const newId = () =>
 export default function JoinGame() {
   const params = new URLSearchParams(window.location.search)
   const [code, setCode] = useState((params.get('code') || '').toUpperCase())
-  const [name, setName] = useState('')
+  // Remembered from last time (same phone, probably same person) — prefilled
+  // but fully editable, so changing your name is just typing over it.
+  const [name, setName] = useState(() => localStorage.getItem('rolligan:name') ?? '')
   const [stage, setStage] = useState('enter') // enter | connecting | live | ended | error
   const [error, setError] = useState('')
   const [game, setGame] = useState(null)
-  const playerId = useRef(newId())
+  // Stable per-device seat id: rejoining (refresh, new day, new game) reclaims
+  // the SAME seat instead of minting a duplicate player.
+  const playerId = useRef(localStorage.getItem('rolligan:pid') || newId())
   const channel = useRef(null)
   const lastRev = useRef(-1)
   const joinTimer = useRef(null)
@@ -44,6 +48,8 @@ export default function JoinGame() {
     const cleanName = name.trim()
     if (cleanCode.length < 4 || !cleanName) return
     if (!supabase) { setError('Live games aren’t configured yet.'); setStage('error'); return }
+    localStorage.setItem('rolligan:name', cleanName)
+    localStorage.setItem('rolligan:pid', playerId.current)
 
     setStage('connecting')
     seated.current = false
@@ -225,12 +231,17 @@ function LiveGame({ game, me, canBank, bank, roll }) {
     if (game.rollsThisRound > 0) navigator.vibrate?.(60)
   }, [game.round, game.rollsThisRound])
 
+  const rollerColor = roller ? (myRoll ? C.orange : colorFor(game, roller.id)) : C.inkDim
   return (
     <div style={S.live}>
       {game.roundPhase === 'roundOver' && <RoundRecap game={game} meId={me?.id} />}
-      <div style={S.topRow}>
-        <span style={S.tracker}>ROUND {game.round} / {game.totalRounds}</span>
-        <span style={S.tracker}>{game.players.filter((p) => p.status === 'in').length} IN</span>
+      {/* Round — big and unmissable */}
+      <div style={S.roundRow}>
+        <span style={S.roundBig}>ROUND {game.round}</span>
+        <span style={{ color: C.inkDim, fontWeight: 600 }}>of {game.totalRounds}</span>
+        <span style={{ ...S.tracker, marginLeft: 'auto' }}>
+          {game.players.filter((p) => p.status === 'in').length} IN
+        </span>
       </div>
 
       <div style={{ ...S.banner,
@@ -241,12 +252,23 @@ function LiveGame({ game, me, canBank, bank, roll }) {
           : 'DANGER · 7 BUSTS THE POT'}
       </div>
 
+      {/* Whose turn — a real banner in the roller's color, not a whisper */}
       {roller && (
-        <div style={S.roller}>
-          <span style={{ ...S.dot, background: colorFor(game, roller.id) }} />
-          {myRoll
-            ? <b style={{ color: C.orange }}>YOUR ROLL</b>
-            : <><b>{roller.name}</b>&nbsp;<span style={{ color: C.inkDim }}>up to roll</span></>}
+        <div className={myRoll ? 'rol-your-roll' : ''} style={{ ...S.rollerBanner,
+          background: `${rollerColor}24`, borderColor: rollerColor }}>
+          <span style={{ ...S.rollerAvatar, background: rollerColor }}>
+            {roller.name.slice(0, 1).toUpperCase()}
+          </span>
+          <span style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 19, fontWeight: 800,
+              color: myRoll ? C.orange : C.ink,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {myRoll ? 'YOUR ROLL 🎲' : roller.name}
+            </div>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: rollerColor }}>
+              {myRoll ? 'THE DICE ARE IN YOUR HAND' : 'UP TO ROLL'}
+            </div>
+          </span>
         </div>
       )}
 
@@ -260,20 +282,7 @@ function LiveGame({ game, me, canBank, bank, roll }) {
       <div style={S.potLabel}>POT THIS ROUND</div>
       <div style={{ ...S.pot, fontSize: virtual ? 56 : 72 }}>{game.pot}</div>
 
-      <div style={S.players}>
-        {game.players.map((p) => (
-          <div key={p.id} style={{ ...S.playerChip,
-            border: `1.5px solid ${p.id === me?.id ? C.orange : 'transparent'}`,
-            background: p.status === 'banked' ? 'rgba(78,205,196,0.14)' : C.panelMuted }}>
-            <div style={{ fontWeight: 800 }}>{p.score}</div>
-            <div style={{ fontSize: 11, color: C.inkDim }}>{p.name}{p.id === me?.id ? ' (you)' : ''}</div>
-            <div style={{ fontSize: 10, fontWeight: 800,
-              color: p.status === 'banked' ? C.mint : (p.status === 'in' ? C.ink : C.inkDim) }}>
-              {p.status === 'banked' ? `✓ +${p.bankedThisRound ?? ''}` : p.status === 'in' ? 'IN' : 'OUT'}
-            </div>
-          </div>
-        ))}
-      </div>
+      <Leaderboard game={game} meId={me?.id} />
 
       {myRoll && (
         <button className="rol-roll-btn" style={S.rollBtn} onClick={roll}>
@@ -287,6 +296,49 @@ function LiveGame({ game, me, canBank, bank, roll }) {
           : game.bankingOpen ? `BANK · lock in ${game.pot}`
           : 'BANK OPENS AFTER 3 ROLLS'}
       </button>
+    </div>
+  )
+}
+
+// Live leaderboard: rows keep a stable DOM identity (keyed by player) and are
+// POSITIONED by rank via translateY — so when a bank shuffles the standings,
+// rows visibly glide up and down to their new spots.
+const LB_ROW = 50
+function Leaderboard({ game, meId }) {
+  const ranked = [...game.players].sort((a, b) => b.score - a.score)
+  const rankOf = {}
+  ranked.forEach((p, i) => { rankOf[p.id] = i })
+  return (
+    <div style={{ position: 'relative', height: game.players.length * LB_ROW, margin: '4px 0' }}>
+      {game.players.map((p) => {
+        const banked = p.status === 'banked'
+        const rank = rankOf[p.id]
+        return (
+          <div key={p.id} className="lb-row" style={{
+            position: 'absolute', left: 0, right: 0, top: 0, height: LB_ROW - 8,
+            transform: `translateY(${rank * LB_ROW}px)`,
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '0 12px', borderRadius: 12, fontSize: 15, textAlign: 'left',
+            background: p.id === meId ? 'rgba(255,107,53,0.16)' : C.panelMuted,
+            border: `1.5px solid ${p.id === meId ? C.orange : 'transparent'}`,
+          }}>
+            <span style={{ width: 22, height: 22, borderRadius: 999, flex: 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              color: C.charcoal, fontWeight: 800, fontSize: 12,
+              background: rank === 0 ? C.orange : C.inkDim }}>{rank + 1}</span>
+            <span style={{ fontWeight: p.id === meId ? 800 : 600, minWidth: 0,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {p.name}{p.id === meId ? ' (you)' : ''}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, flex: 'none',
+              color: banked ? C.mint : C.inkDim }}>
+              {banked ? `✓ +${p.bankedThisRound ?? ''}` : p.status === 'in' ? 'IN' : 'OUT'}
+            </span>
+            <span style={{ fontWeight: 800, minWidth: 40, textAlign: 'right', flex: 'none',
+              color: banked ? C.mint : C.ink }}>{p.score}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -335,6 +387,13 @@ const S = {
   live: { width: '100%', maxWidth: 460, padding: '24px 20px 40px', display: 'flex', flexDirection: 'column', gap: 14 },
   topRow: { display: 'flex', justifyContent: 'space-between' },
   tracker: { color: C.inkDim, fontSize: 11, fontWeight: 600, letterSpacing: 1.6 },
+  roundRow: { display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 },
+  roundBig: { fontSize: 24, fontWeight: 800, letterSpacing: -0.5, color: C.ink },
+  rollerBanner: { display: 'flex', alignItems: 'center', gap: 10, borderRadius: 14,
+    border: '2px solid', padding: '8px 12px' },
+  rollerAvatar: { width: 34, height: 34, borderRadius: 999, flex: 'none',
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    color: C.charcoal, fontWeight: 800, fontSize: 15 },
   banner: { borderRadius: 999, padding: '8px 14px', fontWeight: 800, fontSize: 14, textAlign: 'center' },
   roller: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 16 },
   dot: { width: 12, height: 12, borderRadius: 6, display: 'inline-block' },

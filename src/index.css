@@ -613,3 +613,8 @@ footer::before {
 @media (prefers-reduced-motion: reduce) {
   .recap-card, .recap-row { animation: none; }
 }
+
+/* ── Live leaderboard rows glide between ranks; your-roll banner breathes ── */
+.lb-row { transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.rol-your-roll { animation: rolRollPulse 0.9s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .lb-row { transition: none; } }
