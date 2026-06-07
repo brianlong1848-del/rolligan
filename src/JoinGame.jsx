@@ -68,6 +68,9 @@ export default function JoinGame() {
 
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
+        // Fires on FIRST subscribe AND on every auto-reconnect (phone slept,
+        // network blipped). Re-announcing is idempotent — the host re-activates
+        // our existing seat — so a sleeping phone rejoins by itself.
         ch.send({ type: 'broadcast', event: 'join',
           payload: { playerId: playerId.current, name: cleanName } })
         // If no seat arrives, the code is almost certainly wrong (or the game
@@ -79,9 +82,15 @@ export default function JoinGame() {
             setStage('error')
           }
         }, 8000)
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        setError('Couldn’t reach the game. Check the code and try again.')
-        setStage('error')
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        // Once seated, NEVER kick the player to the error screen — phones
+        // sleep constantly mid-party. supabase-js reconnects on its own and
+        // the SUBSCRIBED branch above re-seats us. Only a join that never
+        // worked in the first place should error out.
+        if (!seated.current) {
+          setError('Couldn’t reach the game. Check the code and try again.')
+          setStage('error')
+        }
       }
     })
   }
