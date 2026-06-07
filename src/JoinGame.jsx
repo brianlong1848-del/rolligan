@@ -91,6 +91,13 @@ export default function JoinGame() {
       payload: { playerId: playerId.current } })
   }
 
+  // Virtual dice: ask the host to roll for our seat. The host only honors it
+  // when it's actually our turn, so a stray tap can never roll out of turn.
+  function roll() {
+    channel.current?.send({ type: 'broadcast', event: 'roll',
+      payload: { playerId: playerId.current } })
+  }
+
   const me = game?.players?.find((p) => p.id === playerId.current)
   const canBank = game?.bankingOpen && me?.status === 'in'
 
@@ -108,7 +115,7 @@ export default function JoinGame() {
       {stage === 'live' && game && (
         game.phase === 'finished'
           ? <Results game={game} meId={playerId.current} />
-          : <LiveGame game={game} me={me} canBank={canBank} bank={bank} />
+          : <LiveGame game={game} me={me} canBank={canBank} bank={bank} roll={roll} />
       )}
     </div>
   )
@@ -133,8 +140,38 @@ function EnterCard({ code, setCode, name, setName, join }) {
   )
 }
 
-function LiveGame({ game, me, canBank, bank }) {
+// One die face, pip-perfect, with a quick tumble animation on every new roll.
+// Styled to read like the iOS app's 3D dice (rounded body, glossy top edge).
+const PIP_GRID = { 1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }
+function Die({ face, body, rollKey }) {
+  const pips = PIP_GRID[Math.max(1, Math.min(6, face))] ?? []
+  return (
+    <div key={rollKey} className="rol-die" style={{
+      background: `linear-gradient(145deg, ${body}, ${shade(body)})`,
+    }}>
+      <span className="rol-die-gloss" />
+      {Array.from({ length: 9 }, (_, i) => (
+        <span key={i} className="rol-pip" style={{ opacity: pips.includes(i) ? 1 : 0 }} />
+      ))}
+    </div>
+  )
+}
+const shade = (hex) => hex === C.orange ? '#D14E1F' : '#37A89E'
+
+function LiveGame({ game, me, canBank, bank, roll }) {
   const roller = game.players.find((p) => p.id === game.currentRollerId)
+  const virtual = game.diceMode === 'virtual'
+  const myRoll = virtual && roller?.id === me?.id
+    && (game.roundPhase === 'readyToRoll' || game.roundPhase === 'awaitingAction')
+
+  // The broadcast's roll counter is a natural animation key: it changes exactly
+  // once per roll, so re-keying on it replays the tumble — and never on banks.
+  const rollKey = `${game.round}-${game.rollsThisRound}`
+  useEffect(() => {
+    // Buzz on each new roll (Android supports vibrate; iOS Safari ignores it).
+    if (game.rollsThisRound > 0) navigator.vibrate?.(60)
+  }, [game.round, game.rollsThisRound])
+
   return (
     <div style={S.live}>
       <div style={S.topRow}>
@@ -153,12 +190,21 @@ function LiveGame({ game, me, canBank, bank }) {
       {roller && (
         <div style={S.roller}>
           <span style={{ ...S.dot, background: colorFor(game, roller.id) }} />
-          <b>{roller.name}</b>&nbsp;<span style={{ color: C.inkDim }}>up to roll</span>
+          {myRoll
+            ? <b style={{ color: C.orange }}>YOUR ROLL</b>
+            : <><b>{roller.name}</b>&nbsp;<span style={{ color: C.inkDim }}>up to roll</span></>}
+        </div>
+      )}
+
+      {virtual && (
+        <div style={S.diceRow}>
+          <Die face={game.diceA ?? 1} body={C.orange} rollKey={`a-${rollKey}`} />
+          <Die face={game.diceB ?? 1} body={C.mint} rollKey={`b-${rollKey}`} />
         </div>
       )}
 
       <div style={S.potLabel}>POT THIS ROUND</div>
-      <div style={S.pot}>{game.pot}</div>
+      <div style={{ ...S.pot, fontSize: virtual ? 56 : 72 }}>{game.pot}</div>
 
       <div style={S.players}>
         {game.players.map((p) => (
@@ -175,7 +221,14 @@ function LiveGame({ game, me, canBank, bank }) {
         ))}
       </div>
 
-      <button style={{ ...S.bank, opacity: canBank ? 1 : 0.35 }} disabled={!canBank} onClick={bank}>
+      {myRoll && (
+        <button className="rol-roll-btn" style={S.rollBtn} onClick={roll}>
+          🎲 ROLL THE DICE
+        </button>
+      )}
+
+      <button style={{ ...S.bank, opacity: canBank ? 1 : 0.35, marginTop: myRoll ? 0 : 'auto' }}
+        disabled={!canBank} onClick={bank}>
         {me?.status === 'banked' ? 'BANKED ✓'
           : game.bankingOpen ? `BANK · lock in ${game.pot}`
           : 'BANK OPENS AFTER 3 ROLLS'}
@@ -234,6 +287,10 @@ const S = {
   potLabel: { textAlign: 'center', color: C.inkDim, fontSize: 11, letterSpacing: 1.6, fontWeight: 600, marginTop: 8 },
   pot: { textAlign: 'center', color: C.orange, fontSize: 72, fontWeight: 800, lineHeight: 1 },
   players: { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', margin: '8px 0' },
+  diceRow: { display: 'flex', gap: 18, justifyContent: 'center', padding: '6px 0' },
+  rollBtn: { marginTop: 'auto', background: C.orange, color: C.charcoal, border: 'none',
+    borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 800, letterSpacing: 0.8,
+    cursor: 'pointer', boxShadow: `0 0 24px rgba(255,107,53,0.45)` },
   playerChip: { borderRadius: 12, padding: '8px 12px', textAlign: 'center', minWidth: 64 },
   bank: { marginTop: 'auto', background: C.mint, color: C.charcoal, border: 'none',
     borderRadius: 999, padding: '18px', fontSize: 16, fontWeight: 800, letterSpacing: 0.8, cursor: 'pointer' },

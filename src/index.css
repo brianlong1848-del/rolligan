@@ -558,3 +558,43 @@ footer::before {
   }
   .ios-card { padding: 2.5rem; }
 }
+
+/* ── Virtual dice (web roll parity with the iOS 3D dice) ─────────────────── */
+.rol-die {
+  position: relative;
+  width: 72px; height: 72px;
+  border-radius: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+  padding: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.45), inset 0 -3px 6px rgba(0,0,0,0.25);
+  animation: rolDieTumble 0.55s cubic-bezier(0.2, 0.85, 0.3, 1.1);
+}
+.rol-die-gloss {
+  position: absolute; inset: 3px 3px 50% 3px;
+  border-radius: 13px 13px 40% 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.rol-pip {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #1A1A20;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+@keyframes rolDieTumble {
+  0%   { transform: rotate(-200deg) scale(0.55); }
+  60%  { transform: rotate(18deg) scale(1.08); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* Your-turn roll button breathes, like the iOS bank button */
+.rol-roll-btn { animation: rolRollPulse 0.9s ease-in-out infinite alternate; }
+@keyframes rolRollPulse {
+  from { transform: scale(1);    box-shadow: 0 0 12px rgba(255,107,53,0.25); }
+  to   { transform: scale(1.03); box-shadow: 0 0 28px rgba(255,107,53,0.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rol-die, .rol-roll-btn { animation: none; }
+}
