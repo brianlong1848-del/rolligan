@@ -361,6 +361,9 @@ function Leaderboard({ game, meId }) {
       <div style={{ position: 'relative', height: game.players.length * LB_ROW }}>
       {game.players.map((p) => {
         const banked = p.status === 'banked'
+        // Party feedback: whoever BANKED (or busted) is out of the round — they
+        // fade back, and the vivid rows are the ones still riding the pot.
+        const active = p.status === 'in'
         const rank = rankOf[p.id]
         const isMe = p.id === meId
         // The roller's row carries a traveling highlight in THEIR color (the
@@ -371,6 +374,7 @@ function Leaderboard({ game, meId }) {
           <div key={p.id} className={`lb-row ${isRoller ? 'lb-roller' : ''}`} style={{
             position: 'absolute', left: 0, right: 0, top: 0, height: LB_ROW - 6,
             transform: `translateY(${rank * LB_ROW}px)`,
+            opacity: active ? 1 : 0.45,
             display: 'flex', alignItems: 'center', gap: 8,
             padding: '0 10px', borderRadius: 11, fontSize: 14, textAlign: 'left',
             background: isMe ? 'rgba(255,107,53,0.16)'
@@ -387,11 +391,11 @@ function Leaderboard({ game, meId }) {
               {isRoller ? '🎲 ' : ''}{p.name}{isMe ? ' (you)' : ''}
             </span>
             <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, flex: 'none',
-              color: banked ? C.mint : C.inkDim }}>
-              {banked ? `✓ +${p.bankedThisRound ?? ''}` : p.status === 'in' ? 'IN' : 'OUT'}
+              color: active ? C.mint : C.inkDim }}>
+              {banked ? `BANKED +${p.bankedThisRound ?? ''}` : active ? 'IN' : 'OUT'}
             </span>
             <span style={{ fontWeight: 800, minWidth: 40, textAlign: 'right', flex: 'none',
-              color: banked ? C.mint : C.ink }}>{p.score}</span>
+              color: active ? C.ink : C.inkDim }}>{p.score}</span>
           </div>
         )
       })}
