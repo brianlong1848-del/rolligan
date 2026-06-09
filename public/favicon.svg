@@ -1,11 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <rect width="64" height="64" rx="4" fill="#1A1A20"/>
-  <rect x="9" y="9" width="46" height="46" rx="12" fill="#FF6B35"/>
+  <!-- mint die, behind / top-right -->
+  <rect x="26" y="8" width="30" height="30" rx="8" fill="#4ECDC4"/>
   <g fill="#16161C">
-    <circle cx="22" cy="22" r="4.6"/>
-    <circle cx="42" cy="22" r="4.6"/>
-    <circle cx="32" cy="32" r="4.6"/>
-    <circle cx="22" cy="42" r="4.6"/>
-    <circle cx="42" cy="42" r="4.6"/>
+    <circle cx="34" cy="16" r="2.8"/>
+    <circle cx="48" cy="16" r="2.8"/>
+    <circle cx="41" cy="23" r="2.8"/>
+    <circle cx="48" cy="30" r="2.8"/>
+  </g>
+  <!-- orange die, front / bottom-left -->
+  <rect x="8" y="26" width="30" height="30" rx="8" fill="#FF6B35"/>
+  <g fill="#16161C">
+    <circle cx="15" cy="33" r="3"/>
+    <circle cx="31" cy="33" r="3"/>
+    <circle cx="23" cy="41" r="3"/>
+    <circle cx="15" cy="49" r="3"/>
+    <circle cx="31" cy="49" r="3"/>
   </g>
 </svg>

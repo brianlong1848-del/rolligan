@@ -97,7 +97,7 @@ function Hero() {
         <div className="hero-text">
           <p className="tracker">Push your luck · Dice party game</p>
           <h1 id="hero-h" className="wordmark">Rolligan</h1>
-          <p className="hook">The dice game where we can hangout, laugh, and not have to strategize while playing.</p>
+          <p className="hook">The dice game where we can hang out, laugh, and not have to strategize while playing.</p>
           <p className="hero-sub">For 2+ players. Free on the App Store.</p>
           <div className="cta-row">
             <AppStoreBadge />
