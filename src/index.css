@@ -81,8 +81,20 @@ img, svg { display: block; }
   justify-content: space-between;
   padding: 1rem 1.5rem;
   background: linear-gradient(180deg, rgba(26, 26, 32, 0.92), rgba(26, 26, 32, 0.65) 70%, rgba(26, 26, 32, 0));
-  backdrop-filter: saturate(140%) blur(10px);
-  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+}
+/* A sticky element with backdrop-filter re-blurs the whole viewport on every
+   scroll frame — cheap on desktop/iOS, but a common cause of severe scroll
+   stutter (reads as "freezing") on Android. On phones, drop the blur and lean
+   on a near-opaque bar instead: visually almost identical, no per-frame blur.
+   Coarse pointers (touch) are the ones that hurt, so gate on that too. */
+@media (max-width: 640px), (pointer: coarse) {
+  .nav {
+    background: linear-gradient(180deg, rgba(26, 26, 32, 0.97), rgba(26, 26, 32, 0.88) 70%, rgba(26, 26, 32, 0.72));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 .nav-inner {
   display: flex;

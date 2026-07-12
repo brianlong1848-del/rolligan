@@ -21,7 +21,57 @@ const newId = () =>
   (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
     .toUpperCase()
 
+const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
+
+// iPhone/iPad play in the native app, not the browser. When a universal link is
+// configured on the iOS app, iOS opens the app straight to this game BEFORE this
+// page ever loads — so if this code is running at all, the app isn't installed
+// (or didn't intercept the link), and we send them to the App Store to get it.
+// Android + desktop keep the working web join flow untouched.
+const isAppleMobile = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
 export default function JoinGame() {
+  const params = new URLSearchParams(window.location.search)
+  if (isAppleMobile()) {
+    return <IosGetApp code={(params.get('code') || '').toUpperCase()} />
+  }
+  return <JoinGameWeb />
+}
+
+// iOS interstitial: show the game code (so they can type it in after installing
+// if needed), then hand off to the App Store. If they already have Rolligan, the
+// App Store page shows "Open"; with a universal link configured they never even
+// reach here — the app opens directly to the game.
+function IosGetApp({ code }) {
+  useEffect(() => {
+    const t = setTimeout(() => { window.location.href = APP_STORE_URL }, 2600)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div style={S.root}>
+      <div style={{ ...S.card, justifyContent: 'center', minHeight: '100dvh', boxSizing: 'border-box' }}>
+        <div style={S.eyebrow}>PLAY ON IPHONE</div>
+        <h1 style={S.wordmark}>Rolligan</h1>
+        <div style={{ textAlign: 'center', color: C.ink, fontSize: 17, fontWeight: 600 }}>
+          Rolligan plays in the app on iPhone.
+        </div>
+        {code && (
+          <div style={{ textAlign: 'center', color: C.inkDim, fontSize: 15, marginTop: 2 }}>
+            Game code <span style={{ color: C.mint, fontWeight: 800, letterSpacing: 3 }}>{code}</span>
+          </div>
+        )}
+        <a href={APP_STORE_URL} style={{ ...S.primary, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+          GET ROLLIGAN — APP STORE →
+        </a>
+        <div style={S.hint}>Taking you to the App Store… already have Rolligan? Tap <b>Open</b> there.</div>
+      </div>
+    </div>
+  )
+}
+
+function JoinGameWeb() {
   const params = new URLSearchParams(window.location.search)
   const [code, setCode] = useState((params.get('code') || '').toUpperCase())
   // Remembered from last time (same phone, probably same person) — prefilled
@@ -218,7 +268,14 @@ function RoundRecap({ game, meId }) {
 }
 
 function LiveGame({ game, me, canBank, bank, roll }) {
-  const roller = game.players.find((p) => p.id === game.currentRollerId)
+  // Once you bank (or bust out) you're done for the round — the turn passes on.
+  // But the host owns roller advancement, and when it banks a batch that happens
+  // to include the current roller it can leave currentRollerId pointing at that
+  // now-banked player. Don't take the pointer at face value: a player who isn't
+  // 'in' is never the active roller, so we never label a banked player "UP TO
+  // ROLL" or hand them the dice again.
+  const rollerRaw = game.players.find((p) => p.id === game.currentRollerId)
+  const roller = rollerRaw?.status === 'in' ? rollerRaw : null
   const virtual = game.diceMode === 'virtual'
   const myRoll = virtual && roller?.id === me?.id
     && (game.roundPhase === 'readyToRoll' || game.roundPhase === 'awaitingAction')
@@ -231,19 +288,42 @@ function LiveGame({ game, me, canBank, bank, roll }) {
     if (game.rollsThisRound > 0) navigator.vibrate?.(60)
   }, [game.round, game.rollsThisRound])
 
-  // Safe rolls just ended → doubles are live, the bank is open. Announce it.
+  // During the first 3 rolls a 7 is the GOOD kind — it pays +70 instead of
+  // busting. Celebrate it like the doubles moment. A 7 that didn't end the
+  // round can only be a safe-phase seven (in danger a 7 always busts), so
+  // that's all we need to check. When the same roll also closes the safe
+  // phase, we fold "doubles are live" into the one splash below.
+  const sevenTotal = (game.diceA ?? 0) + (game.diceB ?? 0)
+  const rolledSeven = sevenTotal === 7
+  const [sevenSplash, setSevenSplash] = useState(null) // null | 'good' | 'goodDoubles'
+  useEffect(() => {
+    if (game.phase !== 'playing') return
+    const goodSeven = rolledSeven && !game.roundBusted && game.roundPhase !== 'roundOver'
+    if (!goodSeven) return
+    // Still in the safe phase → plain "good seven". Safe phase just ended on
+    // this very roll → combine with the doubles-are-live announcement.
+    setSevenSplash(game.inSafePhase ? 'good' : 'goodDoubles')
+    navigator.vibrate?.(game.inSafePhase ? 60 : 90)
+    const t = setTimeout(() => setSevenSplash(null), 2600)
+    return () => clearTimeout(t)
+    // Fire once per roll — rollKey (round + rollsThisRound) is the roll identity.
+  }, [game.round, game.rollsThisRound]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Safe rolls just ended → doubles are live, the bank is open. Announce it —
+  // unless that closing roll was itself a 7, which the combined "good seven +
+  // doubles" splash above already covers (don't double-pop).
   const [dangerSplash, setDangerSplash] = useState(false)
   const prevSafe = useRef(true)
   useEffect(() => {
     const was = prevSafe.current
     prevSafe.current = game.inSafePhase
-    if (was && !game.inSafePhase && game.phase === 'playing') {
+    if (was && !game.inSafePhase && game.phase === 'playing' && !rolledSeven) {
       setDangerSplash(true)
       navigator.vibrate?.(80)
       const t = setTimeout(() => setDangerSplash(false), 2200)
       return () => clearTimeout(t)
     }
-  }, [game.inSafePhase, game.phase])
+  }, [game.inSafePhase, game.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The last round just began — now or never.
   const [finalSplash, setFinalSplash] = useState(false)
@@ -270,6 +350,26 @@ function LiveGame({ game, me, canBank, bank, roll }) {
             <div style={{ fontSize: 22, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>DOUBLES ARE LIVE</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>doubles ×2 the pot · a 7 busts it</div>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.orange, marginTop: 2 }}>BANK IS OPEN</div>
+          </div>
+        </div>
+      )}
+      {sevenSplash && (
+        <div style={S.dangerWrap}>
+          <div className="rol-danger-pop" style={{ ...S.dangerCard,
+            borderColor: C.mint, boxShadow: '0 0 40px rgba(78,205,196,0.45)' }}>
+            <div style={{ fontSize: 38 }}>😇🎲</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>GOOD SEVEN!</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>the one 7 that loves you back — +70 to the pot</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkDim, marginTop: 2 }}>quick, bank that karma before it turns evil 😈</div>
+            {sevenSplash === 'goodDoubles' && (
+              <>
+                <div style={{ height: 1, background: C.rule, margin: '12px 0 4px' }} />
+                <div style={{ fontSize: 30 }}>🎲🎲</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>…AND DOUBLES ARE LIVE</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>doubles ×2 the pot · a 7 now busts it</div>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.orange, marginTop: 2 }}>BANK IS OPEN</div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -367,8 +467,10 @@ function Leaderboard({ game, meId }) {
         const rank = rankOf[p.id]
         const isMe = p.id === meId
         // The roller's row carries a traveling highlight in THEIR color (the
-        // same color as the up-to-roll banner). Orange always means "you".
-        const isRoller = p.id === game.currentRollerId
+        // same color as the up-to-roll banner). Orange always means "you". A
+        // banked player is out of the round, so drop the highlight even if a
+        // stale broadcast still names them the roller.
+        const isRoller = p.id === game.currentRollerId && p.status === 'in'
         const rollerColor = colorFor(game, p.id)
         return (
           <div key={p.id} className={`lb-row ${isRoller ? 'lb-roller' : ''}`} style={{
