@@ -238,19 +238,42 @@ function LiveGame({ game, me, canBank, bank, roll }) {
     if (game.rollsThisRound > 0) navigator.vibrate?.(60)
   }, [game.round, game.rollsThisRound])
 
-  // Safe rolls just ended → doubles are live, the bank is open. Announce it.
+  // During the first 3 rolls a 7 is the GOOD kind — it pays +70 instead of
+  // busting. Celebrate it like the doubles moment. A 7 that didn't end the
+  // round can only be a safe-phase seven (in danger a 7 always busts), so
+  // that's all we need to check. When the same roll also closes the safe
+  // phase, we fold "doubles are live" into the one splash below.
+  const sevenTotal = (game.diceA ?? 0) + (game.diceB ?? 0)
+  const rolledSeven = sevenTotal === 7
+  const [sevenSplash, setSevenSplash] = useState(null) // null | 'good' | 'goodDoubles'
+  useEffect(() => {
+    if (game.phase !== 'playing') return
+    const goodSeven = rolledSeven && !game.roundBusted && game.roundPhase !== 'roundOver'
+    if (!goodSeven) return
+    // Still in the safe phase → plain "good seven". Safe phase just ended on
+    // this very roll → combine with the doubles-are-live announcement.
+    setSevenSplash(game.inSafePhase ? 'good' : 'goodDoubles')
+    navigator.vibrate?.(game.inSafePhase ? 60 : 90)
+    const t = setTimeout(() => setSevenSplash(null), 2600)
+    return () => clearTimeout(t)
+    // Fire once per roll — rollKey (round + rollsThisRound) is the roll identity.
+  }, [game.round, game.rollsThisRound]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Safe rolls just ended → doubles are live, the bank is open. Announce it —
+  // unless that closing roll was itself a 7, which the combined "good seven +
+  // doubles" splash above already covers (don't double-pop).
   const [dangerSplash, setDangerSplash] = useState(false)
   const prevSafe = useRef(true)
   useEffect(() => {
     const was = prevSafe.current
     prevSafe.current = game.inSafePhase
-    if (was && !game.inSafePhase && game.phase === 'playing') {
+    if (was && !game.inSafePhase && game.phase === 'playing' && !rolledSeven) {
       setDangerSplash(true)
       navigator.vibrate?.(80)
       const t = setTimeout(() => setDangerSplash(false), 2200)
       return () => clearTimeout(t)
     }
-  }, [game.inSafePhase, game.phase])
+  }, [game.inSafePhase, game.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // The last round just began — now or never.
   const [finalSplash, setFinalSplash] = useState(false)
@@ -277,6 +300,26 @@ function LiveGame({ game, me, canBank, bank, roll }) {
             <div style={{ fontSize: 22, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>DOUBLES ARE LIVE</div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>doubles ×2 the pot · a 7 busts it</div>
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.orange, marginTop: 2 }}>BANK IS OPEN</div>
+          </div>
+        </div>
+      )}
+      {sevenSplash && (
+        <div style={S.dangerWrap}>
+          <div className="rol-danger-pop" style={{ ...S.dangerCard,
+            borderColor: C.mint, boxShadow: '0 0 40px rgba(78,205,196,0.45)' }}>
+            <div style={{ fontSize: 38 }}>😇🎲</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>GOOD SEVEN!</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>the one 7 that loves you back — +70 to the pot</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.inkDim, marginTop: 2 }}>quick, bank that karma before it turns evil 😈</div>
+            {sevenSplash === 'goodDoubles' && (
+              <>
+                <div style={{ height: 1, background: C.rule, margin: '12px 0 4px' }} />
+                <div style={{ fontSize: 30 }}>🎲🎲</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: C.mint, letterSpacing: 1 }}>…AND DOUBLES ARE LIVE</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.ink }}>doubles ×2 the pot · a 7 now busts it</div>
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 2, color: C.orange, marginTop: 2 }}>BANK IS OPEN</div>
+              </>
+            )}
           </div>
         </div>
       )}
