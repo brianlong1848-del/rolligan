@@ -218,7 +218,14 @@ function RoundRecap({ game, meId }) {
 }
 
 function LiveGame({ game, me, canBank, bank, roll }) {
-  const roller = game.players.find((p) => p.id === game.currentRollerId)
+  // Once you bank (or bust out) you're done for the round — the turn passes on.
+  // But the host owns roller advancement, and when it banks a batch that happens
+  // to include the current roller it can leave currentRollerId pointing at that
+  // now-banked player. Don't take the pointer at face value: a player who isn't
+  // 'in' is never the active roller, so we never label a banked player "UP TO
+  // ROLL" or hand them the dice again.
+  const rollerRaw = game.players.find((p) => p.id === game.currentRollerId)
+  const roller = rollerRaw?.status === 'in' ? rollerRaw : null
   const virtual = game.diceMode === 'virtual'
   const myRoll = virtual && roller?.id === me?.id
     && (game.roundPhase === 'readyToRoll' || game.roundPhase === 'awaitingAction')
@@ -367,8 +374,10 @@ function Leaderboard({ game, meId }) {
         const rank = rankOf[p.id]
         const isMe = p.id === meId
         // The roller's row carries a traveling highlight in THEIR color (the
-        // same color as the up-to-roll banner). Orange always means "you".
-        const isRoller = p.id === game.currentRollerId
+        // same color as the up-to-roll banner). Orange always means "you". A
+        // banked player is out of the round, so drop the highlight even if a
+        // stale broadcast still names them the roller.
+        const isRoller = p.id === game.currentRollerId && p.status === 'in'
         const rollerColor = colorFor(game, p.id)
         return (
           <div key={p.id} className={`lb-row ${isRoller ? 'lb-roller' : ''}`} style={{
