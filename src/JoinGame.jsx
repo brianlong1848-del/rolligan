@@ -21,7 +21,57 @@ const newId = () =>
   (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
     .toUpperCase()
 
+const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
+
+// iPhone/iPad play in the native app, not the browser. When a universal link is
+// configured on the iOS app, iOS opens the app straight to this game BEFORE this
+// page ever loads — so if this code is running at all, the app isn't installed
+// (or didn't intercept the link), and we send them to the App Store to get it.
+// Android + desktop keep the working web join flow untouched.
+const isAppleMobile = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
 export default function JoinGame() {
+  const params = new URLSearchParams(window.location.search)
+  if (isAppleMobile()) {
+    return <IosGetApp code={(params.get('code') || '').toUpperCase()} />
+  }
+  return <JoinGameWeb />
+}
+
+// iOS interstitial: show the game code (so they can type it in after installing
+// if needed), then hand off to the App Store. If they already have Rolligan, the
+// App Store page shows "Open"; with a universal link configured they never even
+// reach here — the app opens directly to the game.
+function IosGetApp({ code }) {
+  useEffect(() => {
+    const t = setTimeout(() => { window.location.href = APP_STORE_URL }, 2600)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div style={S.root}>
+      <div style={{ ...S.card, justifyContent: 'center', minHeight: '100dvh', boxSizing: 'border-box' }}>
+        <div style={S.eyebrow}>PLAY ON IPHONE</div>
+        <h1 style={S.wordmark}>Rolligan</h1>
+        <div style={{ textAlign: 'center', color: C.ink, fontSize: 17, fontWeight: 600 }}>
+          Rolligan plays in the app on iPhone.
+        </div>
+        {code && (
+          <div style={{ textAlign: 'center', color: C.inkDim, fontSize: 15, marginTop: 2 }}>
+            Game code <span style={{ color: C.mint, fontWeight: 800, letterSpacing: 3 }}>{code}</span>
+          </div>
+        )}
+        <a href={APP_STORE_URL} style={{ ...S.primary, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+          GET ROLLIGAN — APP STORE →
+        </a>
+        <div style={S.hint}>Taking you to the App Store… already have Rolligan? Tap <b>Open</b> there.</div>
+      </div>
+    </div>
+  )
+}
+
+function JoinGameWeb() {
   const params = new URLSearchParams(window.location.search)
   const [code, setCode] = useState((params.get('code') || '').toUpperCase())
   // Remembered from last time (same phone, probably same person) — prefilled
