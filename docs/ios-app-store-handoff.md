@@ -43,16 +43,18 @@ so every VALID build auto-lands there. Brian's tester: **cbrianlong@me.com**.
 
 ---
 
-## Steps to finish (do in order; stop for go-ahead before #3 and #4)
+## Steps to finish
 
-1. **Attach build 15** to the 1.2.1 App Store version. (Low-risk / reversible.)
-2. **Upload iPad screenshots.** iPad support is new, so iPad screenshots are REQUIRED or the submission
-   is blocked. **Must be a valid size** — use **iPad 13″ = 2064×2752** (or 12.9″ = 2048×2732). ⚠️ The 11″ M5
-   sim captures are 1668×2420, which is NOT an accepted size — do not upload those. Capture on the
-   `iPad Pro 13-inch (M5)` sim (`BDF8B897-8BFE-4267-BA19-6846DCAABE77`). Suggested set: Home, game board,
-   Setup/House Rules, winner celebration. iPhone screenshots should carry over from 1.2.
-3. **Post the Resolution Center reply** (sends to Apple — needs Brian's OK on wording). Draft below.
-4. **Submit 1.2.1 (build 15) for review.** (Irreversible.)
+1. ✅ **DONE — Build 15 attached** to the 1.2.1 App Store version (PATCH via ASC API, verified).
+2. ✅ **DONE — iPad screenshots uploaded.** Four 2064×2752 (iPad 13″) shots — Home, game board,
+   Setup/House Rules, winner celebration — captured on the `iPad Pro 13-inch (M5)` sim
+   (`BDF8B897-8BFE-4267-BA19-6846DCAABE77`) and uploaded to the **en-US** `APP_IPAD_PRO_3GEN_129`
+   screenshot set (`1a8f0e4d-22cd-49bb-b660-e877de21f203`), assetDeliveryState = COMPLETE. Source files
+   saved at `~/Downloads/rolligan-1.2.1-ipad-screenshots/`. (Only en-US filled — the primary locale is the
+   default fallback; if submission validation demands per-locale iPad shots for the other 6 locales
+   (en-AU/en-GB/es-ES/de-DE/fr-FR/es-MX), copy the set to those too.) iPhone screenshots carry over from 1.2.
+3. ⏸️ **Post the Resolution Center reply** — GATED on Brian's go. (Sends to Apple; needs OK on wording. Draft below.)
+4. ⏸️ **Submit 1.2.1 (build 15) for review** — GATED on Brian's go. (Irreversible.)
 
 ### Drafted Resolution Center reply (Brian must approve wording before posting)
 
@@ -116,6 +118,10 @@ regenerate, build. Landscape captures come out rotated in the framebuffer — fi
 
 ## Changelog (newest first)
 
+- **2026-07-12** — **Attached build 15** to the 1.2.1 version and **uploaded 4 iPad 13″ screenshots**
+  (Home, board, Setup, winner) to the en-US slot — all COMPLETE. Submission still PAUSED before the
+  reply + Submit (both gated on Brian's explicit go). Temp screenshot scaffolding added + removed from the
+  iOS source (archive-clean).
 - **2026-07-12** — Committed this handoff to the repo as the living memory doc. Chrome MCP reconnected; ASC
   web UI reachable (logged in as Christopher Long). Submission still PAUSED pending Brian's go-ahead.
 - **2026-07-12** — Shipped **build 15** (iPhone landscape UI): Home compact hero + CTAs side-by-side, Setup
