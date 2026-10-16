@@ -98,7 +98,7 @@ function Hero() {
           <p className="tracker">Push your luck · Dice party game</p>
           <h1 id="hero-h" className="wordmark">Rolligan</h1>
           <p className="hook">The dice game where we can hang out, laugh, and not have to strategize while playing.</p>
-          <p className="hero-sub">For 2+ players. Free on the App Store.</p>
+          <p className="hero-sub">For 2+ players. First 3 games free, then $2.99 once.</p>
           <div className="cta-row">
             <AppStoreBadge />
             <a href="#how" className="pill-cta pill-outline">How it works ↓</a>
@@ -169,10 +169,15 @@ function GetTheApp() {
               <span className="ios-pill-dot" aria-hidden="true" />
               Now on iOS
             </span>
-            <h2 id="ios-h">Free on the App Store.</h2>
+            <h2 id="ios-h">Try 3 games free.</h2>
             <p className="ios-lede">
               Download Rolligan, gather two or more friends, and you're playing in under a
               minute. Everyone joins from their own phone — no account needed.
+            </p>
+            <p className="ios-lede">
+              Your first 3 games are free. After that, one $2.99 unlock keeps you playing
+              forever: unlimited games, hosting rooms and every house rule. No subscription.
+              Friends always join free, in the app or right here on the web.
             </p>
             <AppStoreBadge />
           </div>
