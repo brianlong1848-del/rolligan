@@ -241,6 +241,19 @@ function JoinGameWeb() {
       payload: { playerId: playerId.current } })
   }
 
+  // Real dice + each-roller mode: send the total we rolled. The host only
+  // accepts it from the current roller, in range, at a legal moment.
+  function enterRoll(total) {
+    navigator.vibrate?.(40)
+    channel.current?.send({ type: 'broadcast', event: 'enterRoll',
+      payload: { playerId: playerId.current, total } })
+  }
+  function enterDoubles() {
+    navigator.vibrate?.(40)
+    channel.current?.send({ type: 'broadcast', event: 'enterDoubles',
+      payload: { playerId: playerId.current } })
+  }
+
   const me = game?.players?.find((p) => p.id === playerId.current)
   const canBank = game?.bankingOpen && me?.status === 'in'
 
@@ -259,7 +272,8 @@ function JoinGameWeb() {
       {stage === 'live' && game && (
         game.phase === 'finished'
           ? <Results game={game} meId={playerId.current} />
-          : <LiveGame game={game} me={me} canBank={canBank} bank={bank} roll={roll} />
+          : <LiveGame game={game} me={me} canBank={canBank} bank={bank} roll={roll}
+              enterRoll={enterRoll} enterDoubles={enterDoubles} />
       )}
     </div>
     </PhotosCtx.Provider>
@@ -379,7 +393,33 @@ function RoundRecap({ game, meId }) {
   )
 }
 
-function LiveGame({ game, me, canBank, bank, roll }) {
+// Real dice, "each roller enters": tap the total you rolled. Same keys as the
+// iOS RollKeypad: safe rolls show 2–12 (7 = +70, mint); danger shows 3–11
+// (7 = bust, orange) plus DOUBLES, since 2 and 12 can only be doubles.
+function Keypad({ safe, onEnter, onDoubles }) {
+  const totals = safe ? [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [3, 4, 5, 6, 7, 8, 9, 10, 11]
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ ...S.tracker, textAlign: 'center' }}>
+        {safe ? 'YOUR ROLL — TAP THE TOTAL' : 'YOUR ROLL — TAP THE TOTAL · OR DOUBLES'}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8 }}>
+        {totals.map((n) => (
+          <button key={n} onClick={() => onEnter(n)} style={{ height: 44, borderRadius: 12, border: 'none',
+            background: C.panel, fontWeight: 900, fontSize: 20, fontFamily: 'inherit',
+            color: n === 7 ? (safe ? C.mint : C.orange) : C.ink }}>{n}</button>
+        ))}
+      </div>
+      {!safe && (
+        <button onClick={onDoubles} style={{ height: 46, borderRadius: 999, border: 'none',
+          background: C.mint, color: C.charcoal, fontWeight: 800, letterSpacing: 1.5, fontSize: 15,
+          fontFamily: 'inherit' }}>DOUBLES ×2</button>
+      )}
+    </div>
+  )
+}
+
+function LiveGame({ game, me, canBank, bank, roll, enterRoll, enterDoubles }) {
   // Once you bank (or bust out) you're done for the round — the turn passes on.
   // But the host owns roller advancement, and when it banks a batch that happens
   // to include the current roller it can leave currentRollerId pointing at that
@@ -389,8 +429,12 @@ function LiveGame({ game, me, canBank, bank, roll }) {
   const rollerRaw = game.players.find((p) => p.id === game.currentRollerId)
   const roller = rollerRaw?.status === 'in' ? rollerRaw : null
   const virtual = game.diceMode === 'virtual'
-  const myRoll = virtual && roller?.id === me?.id
-    && (game.roundPhase === 'readyToRoll' || game.roundPhase === 'awaitingAction')
+  const canAct = game.roundPhase === 'readyToRoll' || game.roundPhase === 'awaitingAction'
+  // It's my turn (either dice mode). Virtual: I get the ROLL button. Real dice
+  // with "each roller enters": I get the number keypad, same as the iOS app.
+  const myTurn = roller?.id === me?.id && canAct
+  const myRoll = virtual && myTurn
+  const myKeypad = !virtual && game.scoreEntry === 'eachRoller' && myTurn
 
   // The broadcast's roll counter is a natural animation key: it changes exactly
   // once per roll, so re-keying on it replays the tumble — and never on banks.
@@ -451,7 +495,7 @@ function LiveGame({ game, me, canBank, bank, roll }) {
     }
   }, [game.round, game.totalRounds, game.phase])
 
-  const rollerColor = roller ? (myRoll ? C.orange : colorFor(game, roller.id)) : C.inkDim
+  const rollerColor = roller ? (myTurn ? C.orange : colorFor(game, roller.id)) : C.inkDim
   return (
     <div style={S.live}>
       {game.roundPhase === 'roundOver' && <RoundRecap game={game} meId={me?.id} />}
@@ -514,20 +558,20 @@ function LiveGame({ game, me, canBank, bank, roll }) {
 
       {/* Whose turn — a real banner in the roller's color, not a whisper */}
       {roller && (
-        <div className={myRoll ? 'rol-your-roll' : ''} style={{ ...S.rollerBanner,
+        <div className={myTurn ? 'rol-your-roll' : ''} style={{ ...S.rollerBanner,
           background: `${rollerColor}24`, borderColor: rollerColor }}>
-          <span className={myRoll ? 'rol-avatar-pulse' : ''}>
+          <span className={myTurn ? 'rol-avatar-pulse' : ''}>
             <Avatar id={roller.id} name={roller.name} color={rollerColor}
-              size={myRoll ? 64 : 46} ring={rollerColor} ringWidth={myRoll ? 3 : 2} />
+              size={myTurn ? (myKeypad ? 48 : 64) : 46} ring={rollerColor} ringWidth={myTurn ? 3 : 2} />
           </span>
           <span style={{ minWidth: 0 }}>
             <div style={{ fontSize: 19, fontWeight: 800,
-              color: myRoll ? C.orange : C.ink,
+              color: myTurn ? C.orange : C.ink,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {myRoll ? 'YOUR ROLL 🎲' : roller.name}
+              {myTurn ? 'YOUR ROLL 🎲' : roller.name}
             </div>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: rollerColor }}>
-              {myRoll ? 'THE DICE ARE IN YOUR HAND' : 'UP TO ROLL'}
+              {myRoll ? 'THE DICE ARE IN YOUR HAND' : myKeypad ? 'ROLL, THEN TAP YOUR TOTAL' : 'UP TO ROLL'}
             </div>
           </span>
         </div>
@@ -550,8 +594,9 @@ function LiveGame({ game, me, canBank, bank, roll }) {
           🎲 ROLL THE DICE
         </button>
       )}
+      {myKeypad && <Keypad safe={game.inSafePhase} onEnter={enterRoll} onDoubles={enterDoubles} />}
 
-      <button style={{ ...S.bank, opacity: canBank ? 1 : 0.35, marginTop: myRoll ? 0 : 'auto' }}
+      <button style={{ ...S.bank, opacity: canBank ? 1 : 0.35, marginTop: (myRoll || myKeypad) ? 0 : 'auto' }}
         disabled={!canBank} onClick={bank}>
         {me?.status === 'banked' ? 'BANKED ✓'
           : game.bankingOpen ? `BANK · lock in ${game.pot}`
