@@ -661,3 +661,8 @@ footer::before {
 @media (prefers-reduced-motion: reduce) {
   .rol-confetti, .win-trophy, .win-name, .rol-danger-pop { animation: none; }
 }
+
+/* Player photo: gentle pulse on the avatar when it's your roll. */
+.rol-avatar-pulse { display: inline-flex; animation: rolAvatarPulse 0.9s ease-in-out infinite alternate; }
+@keyframes rolAvatarPulse { from { transform: scale(1); } to { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .rol-avatar-pulse { animation: none; } }

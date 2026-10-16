@@ -2,7 +2,7 @@
 // MULTIPLAYER.md: enter a room code + name, see the live shared pot, and tap
 // your own BANK. The iOS banker is the authority; we render its broadcasts.
 
-import { useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { supabase, roomChannel } from './supabaseClient.js'
 
 const C = {
@@ -20,6 +20,62 @@ const PLAYER_COLORS = ['#FF6B35', '#4ECDC4', '#F5C24B', '#B084FF', '#FF8FA3',
 const newId = () =>
   (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
     .toUpperCase()
+
+// ── Player photos (2026-10-16) ────────────────────────────────────────────
+// A player can add a photo; it shows in their circle instead of their initial,
+// big when it's their roll, on the round recap and the winner screen. Photos
+// stay in this browser (localStorage) and are sent LIVE to the players in the
+// room as a small JPEG over the broadcast relay — never stored on a server.
+const PhotosCtx = createContext({})
+
+// Center-crop + resize an image File to a square JPEG data URL.
+function squareJpeg(file, side, quality) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.onload = () => {
+      const s = Math.min(img.width, img.height)
+      const c = document.createElement('canvas')
+      c.width = side; c.height = side
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, side, side)
+      URL.revokeObjectURL(url)
+      resolve(c.toDataURL('image/jpeg', quality))
+    }
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e) }
+    img.src = url
+  })
+}
+// Downscale a stored data URL to the 128 px wire size; returns bare base64.
+function wireFromDataUrl(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = 128; c.height = 128
+      c.getContext('2d').drawImage(img, 0, 0, 128, 128)
+      resolve(c.toDataURL('image/jpeg', 0.6).split(',')[1])
+    }
+    img.onerror = () => resolve('')
+    img.src = dataUrl
+  })
+}
+
+// A player's circle: photo if we have one, otherwise their initial.
+function Avatar({ id, name, color, size = 30, ring, ringWidth = 2 }) {
+  const photos = useContext(PhotosCtx)
+  const src = id ? photos[id] : null
+  const initial = (name || '?').trim().slice(0, 1).toUpperCase() || '?'
+  return (
+    <span aria-hidden="true" style={{
+      width: size, height: size, borderRadius: 999, flex: 'none', overflow: 'hidden',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      background: color, color: C.charcoal, fontWeight: 900, fontSize: Math.round(size * 0.42),
+      boxShadow: ring ? `0 0 0 ${ringWidth}px ${ring}` : 'none',
+    }}>
+      {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
+    </span>
+  )
+}
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
 
@@ -87,6 +143,16 @@ function JoinGameWeb() {
   const lastRev = useRef(-1)
   const joinTimer = useRef(null)
   const seated = useRef(false)
+  // Photos: everyone's (by seat id) and our own, remembered in this browser.
+  const [photos, setPhotos] = useState({})
+  const [myPhoto, setMyPhotoState] = useState(() => localStorage.getItem('rolligan:photo') || '')
+  function setMyPhoto(dataUrl) {
+    setMyPhotoState(dataUrl)
+    try {
+      if (dataUrl) localStorage.setItem('rolligan:photo', dataUrl)
+      else localStorage.removeItem('rolligan:photo')
+    } catch { /* storage full or blocked: photo just isn't remembered */ }
+  }
 
   useEffect(() => () => {
     clearTimeout(joinTimer.current)
@@ -121,6 +187,11 @@ function JoinGameWeb() {
       }
     })
     ch.on('broadcast', { event: 'host-bye' }, () => setStage('ended'))
+    ch.on('broadcast', { event: 'avatar' }, ({ payload }) => {
+      if (!payload?.playerId) return
+      setPhotos((p) => ({ ...p,
+        [payload.playerId]: payload.jpeg ? `data:image/jpeg;base64,${payload.jpeg}` : undefined }))
+    })
 
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
@@ -129,6 +200,13 @@ function JoinGameWeb() {
         // our existing seat — so a sleeping phone rejoins by itself.
         ch.send({ type: 'broadcast', event: 'join',
           payload: { playerId: playerId.current, name: cleanName } })
+        if (myPhoto) {
+          setPhotos((p) => ({ ...p, [playerId.current]: myPhoto }))
+          wireFromDataUrl(myPhoto).then((jpeg) => {
+            if (jpeg) ch.send({ type: 'broadcast', event: 'avatar',
+              payload: { playerId: playerId.current, jpeg } })
+          })
+        }
         // If no seat arrives, the code is almost certainly wrong (or the game
         // is full / already finished). Don't spin forever.
         clearTimeout(joinTimer.current)
@@ -167,8 +245,9 @@ function JoinGameWeb() {
   const canBank = game?.bankingOpen && me?.status === 'in'
 
   return (
+    <PhotosCtx.Provider value={photos}>
     <div style={S.root}>
-      {stage === 'enter' && <EnterCard {...{ code, setCode, name, setName, join }} />}
+      {stage === 'enter' && <EnterCard {...{ code, setCode, name, setName, join, myPhoto, setMyPhoto }} />}
       {stage === 'connecting' && <Centered>Joining {code}…</Centered>}
       {stage === 'error' && (
         <Centered>
@@ -183,14 +262,39 @@ function JoinGameWeb() {
           : <LiveGame game={game} me={me} canBank={canBank} bank={bank} roll={roll} />
       )}
     </div>
+    </PhotosCtx.Provider>
   )
 }
 
-function EnterCard({ code, setCode, name, setName, join }) {
+function EnterCard({ code, setCode, name, setName, join, myPhoto, setMyPhoto }) {
+  async function pick(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try { setMyPhoto(await squareJpeg(file, 256, 0.8)) } catch { /* unreadable image: ignore */ }
+  }
   return (
     <div style={S.card}>
       <div style={S.eyebrow}>JOIN A GAME</div>
       <h1 style={S.wordmark}>Rolligan</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+        {myPhoto
+          ? <img src={myPhoto} alt="Your photo" style={{ width: 64, height: 64, borderRadius: 999,
+              objectFit: 'cover', boxShadow: `0 0 0 2px ${C.orange}` }} />
+          : <span aria-hidden="true" style={{ width: 64, height: 64, borderRadius: 999, flex: 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              border: `2px dashed ${C.orange}`, color: C.orange, fontSize: 28, fontWeight: 800 }}>+</span>}
+        <div style={{ display: 'grid', gap: 6 }}>
+          <label style={S.photoBtn}>Take a photo
+            <input type="file" accept="image/*" capture="user" onChange={pick} style={{ display: 'none' }} />
+          </label>
+          <label style={S.photoBtn}>Choose a photo
+            <input type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
+          </label>
+          {myPhoto && <button style={{ ...S.photoBtn, border: 'none', color: C.inkDim }}
+            onClick={() => setMyPhoto('')}>Use my initial</button>}
+        </div>
+      </div>
       <input style={S.input} value={code} placeholder="ROOM CODE"
         maxLength={4} autoCapitalize="characters"
         onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''))} />
@@ -201,6 +305,7 @@ function EnterCard({ code, setCode, name, setName, join }) {
         JOIN GAME →
       </button>
       <div style={S.hint}>Get the code from whoever’s holding the dice.</div>
+      <div style={{ ...S.hint, fontSize: 12 }}>Your photo is optional. It stays in this browser and is only shown to the players in your game.</div>
     </div>
   )
 }
@@ -239,7 +344,14 @@ function RoundRecap({ game, meId }) {
           {busted ? '💥 BUSTED — pot wiped' : '🏦 Everyone banked!'}
         </div>
         {top && (
-          <div style={S.recapWinner}>👑 {top.name} +{top.bankedThisRound}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 14 }}>
+            <span style={{ position: 'relative' }}>
+              <span aria-hidden="true" style={{ position: 'absolute', left: '50%', top: -22,
+                transform: 'translateX(-50%)', fontSize: 22 }}>👑</span>
+              <Avatar id={top.id} name={top.name} color={colorFor(game, top.id)} size={72} ring="#F5C24B" ringWidth={3} />
+            </span>
+            <div style={S.recapWinner}>{top.name} +{top.bankedThisRound}</div>
+          </div>
         )}
         <div style={{ display: 'grid', gap: 6, marginTop: 10 }}>
           {ranked.map((p, idx) => (
@@ -404,8 +516,9 @@ function LiveGame({ game, me, canBank, bank, roll }) {
       {roller && (
         <div className={myRoll ? 'rol-your-roll' : ''} style={{ ...S.rollerBanner,
           background: `${rollerColor}24`, borderColor: rollerColor }}>
-          <span style={{ ...S.rollerAvatar, background: rollerColor }}>
-            {roller.name.slice(0, 1).toUpperCase()}
+          <span className={myRoll ? 'rol-avatar-pulse' : ''}>
+            <Avatar id={roller.id} name={roller.name} color={rollerColor}
+              size={myRoll ? 64 : 46} ring={rollerColor} ringWidth={myRoll ? 3 : 2} />
           </span>
           <span style={{ minWidth: 0 }}>
             <div style={{ fontSize: 19, fontWeight: 800,
@@ -488,6 +601,8 @@ function Leaderboard({ game, meId }) {
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               color: C.charcoal, fontWeight: 800, fontSize: 12,
               background: rank === 0 ? C.orange : C.inkDim }}>{rank + 1}</span>
+            <Avatar id={p.id} name={p.name} color={isMe ? C.orange : rollerColor} size={26}
+              ring={isRoller ? rollerColor : null} />
             <span style={{ fontWeight: isMe ? 800 : 600, minWidth: 0,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isRoller ? '🎲 ' : ''}{p.name}{isMe ? ' (you)' : ''}
@@ -518,7 +633,17 @@ function Results({ game, meId }) {
       overflow: 'hidden', justifyContent: 'center', padding: '24px',
       display: 'flex', flexDirection: 'column', gap: 10 }}>
       <Confetti extra={iWon ? ['🏆', '👑', '🎉'] : []} />
-      <div className="win-trophy" style={{ fontSize: 64, textAlign: 'center', lineHeight: 1 }}>🏆</div>
+      <div className="win-trophy" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1 }}>
+        <span aria-hidden="true" style={{ fontSize: 40, marginBottom: -8, zIndex: 1 }}>👑</span>
+        <span style={{ display: 'flex' }}>
+          {winners.map((p, i) => (
+            <span key={p.id} style={{ marginLeft: i ? -24 : 0 }}>
+              <Avatar id={p.id} name={p.name} color={colorFor(game, p.id)}
+                size={winners.length > 1 ? 104 : 128} ring="#F5C24B" ringWidth={5} />
+            </span>
+          ))}
+        </span>
+      </div>
       <div style={{ ...S.eyebrow, fontSize: 12 }}>{winners.length > 1 ? 'WINNERS' : 'WINNER'}</div>
       <h1 className="win-name" style={{ ...S.wordmark, fontSize: 44, margin: '2px 0 0' }}>
         {winners.map((p) => p.name).join(' & ')}
@@ -588,6 +713,9 @@ const S = {
     justifyContent: 'center', minHeight: '100vh', gap: 12, color: C.inkDim, padding: 24, textAlign: 'center' },
   eyebrow: { color: C.orange, letterSpacing: 2.2, fontSize: 11, fontWeight: 700, textAlign: 'center' },
   wordmark: { color: C.orange, fontSize: 64, fontWeight: 800, textAlign: 'center', margin: '4px 0 16px', letterSpacing: -1.5 },
+  photoBtn: { display: 'inline-block', cursor: 'pointer', padding: '8px 14px', borderRadius: 999,
+    border: `1.5px solid ${C.mint}`, color: C.mint, fontWeight: 700, fontSize: 14, background: 'transparent',
+    fontFamily: 'inherit', textAlign: 'center' },
   input: { background: C.panel, border: `1px solid ${C.rule}`, borderRadius: 12,
     padding: '16px 18px', color: C.ink, fontSize: 18, fontWeight: 600, outline: 'none' },
   primary: { background: C.orange, color: C.charcoal, border: 'none', borderRadius: 999,
