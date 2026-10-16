@@ -708,6 +708,8 @@ function Results({ game, meId }) {
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 color: C.charcoal, fontWeight: 800, fontSize: 12,
                 background: idx === 0 ? C.orange : C.inkDim }}>{idx + 1}</span>
+              <Avatar id={p.id} name={p.name} color={colorFor(game, p.id)} size={28}
+                ring={p.score === top ? '#F5C24B' : null} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.score === top ? '👑 ' : ''}{p.name}{p.id === meId ? ' (you)' : ''}
               </span>
