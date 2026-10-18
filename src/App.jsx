@@ -135,9 +135,9 @@ function WhyPlay() {
 
 function HowItWorks() {
   const steps = [
-    { n: "01", title: "Roll", body: "On your turn, roll two dice as many times as you dare." },
-    { n: "02", title: "Build the pot", body: "Every roll that isn't a 7 adds points to the pot in front of you." },
-    { n: "03", title: "Bank or bust", body: "Bank to keep what you've got. Roll a 7 and you lose it all." },
+    { n: "01", title: "Roll", body: "Players take turns rolling two dice, and every roll adds to one shared pot. In the first three rolls a 7 is worth 70." },
+    { n: "02", title: "Bank", body: "Anyone can bank at any time to lock in the pot. Once you bank, you're safe for the rest of the round." },
+    { n: "03", title: "Bust", body: "After three rolls, doubles double the pot, but a 7 wipes it out for everyone who hasn't banked." },
   ];
   return (
     <section className="section section--alt" id="how" aria-labelledby="how-h">
