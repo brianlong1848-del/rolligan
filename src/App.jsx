@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const APP_STORE_URL = "https://apps.apple.com/us/app/rolligan/id6774974562";
 
 function AppStoreBadge({ className = "" }) {
@@ -47,31 +49,6 @@ function PipMark() {
   );
 }
 
-function PhoneShot() {
-  return (
-    <div className="phone-shot-stack">
-      <div className="phone-shot phone-shot--back">
-        <img
-          src="/app-gameplay.png"
-          alt="Rolligan gameplay — the pot building as players roll"
-          width="320"
-          height="695"
-          loading="lazy"
-        />
-      </div>
-      <div className="phone-shot phone-shot--front">
-        <img
-          src="/app-home.png"
-          alt="Rolligan home screen on iPhone"
-          width="320"
-          height="695"
-          loading="lazy"
-        />
-      </div>
-    </div>
-  );
-}
-
 function Nav() {
   return (
     <nav className="nav" aria-label="Primary">
@@ -81,8 +58,9 @@ function Nav() {
           Rolligan
         </a>
         <div className="nav-links">
+          <a href="#see">See it</a>
+          <a href="#duo">iPhone Duo</a>
           <a href="#how">How it works</a>
-          <a href="#about">About</a>
           <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="pill-cta pill-cta-sm">Get the app</a>
         </div>
       </div>
@@ -101,12 +79,130 @@ function Hero() {
           <p className="hero-sub">For 2+ players. First 3 games free, then $2.99 once.</p>
           <div className="cta-row">
             <AppStoreBadge />
-            <a href="#how" className="pill-cta pill-outline">How it works ↓</a>
+            <a href="#see" className="pill-cta pill-glass">See it in action ↓</a>
           </div>
+          <p className="hero-chips">
+            <span className="chip">iPhone</span>
+            <span className="chip">iPhone Duo</span>
+            <span className="chip">Join free from any browser</span>
+          </p>
         </div>
         <div className="hero-visual">
+          <div className="hero-glow" aria-hidden="true" />
           <HeroDice />
         </div>
+      </div>
+    </section>
+  );
+}
+
+const SCREENS = [
+  { key: "board", label: "The pot", alt: "Rolligan game board: the pot at 348 with players banking" },
+  { key: "winner", label: "The winner", alt: "Rolligan winner screen with final scores" },
+  { key: "setup", label: "Game setup", alt: "Rolligan setup screen: add players and choose real or virtual dice" },
+  { key: "home", label: "Home", alt: "Rolligan home screen" },
+];
+
+function PhoneFrame({ src, alt, className = "", eager = false }) {
+  return (
+    <figure className={`phone ${className}`}>
+      <div className="phone-body">
+        <img
+          src={src}
+          alt={alt}
+          width="660"
+          height="1434"
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
+        />
+        <span className="glass-sheen" aria-hidden="true" />
+      </div>
+    </figure>
+  );
+}
+
+function PhoneRow() {
+  return (
+    <div className="phone-row">
+      {SCREENS.map((s, i) => (
+        <PhoneFrame
+          key={s.key}
+          src={`/shots/iphone-${s.key}.jpg`}
+          alt={s.alt}
+          className={`phone--${i + 1}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function Showcase() {
+  return (
+    <section className="section" id="see" aria-labelledby="see-h">
+      <div className="page">
+        <p className="tracker">02 — See it</p>
+        <h2 id="see-h">Built for the table.</h2>
+        <p className="lede">
+          Big dice, big buttons, one shared pot. Everyone plays on their own phone, so the
+          only thing on the table is the drama.
+        </p>
+      </div>
+      <PhoneRow />
+      <p className="fine page">Player faces shown are fictional demo avatars.</p>
+    </section>
+  );
+}
+
+function DuoSection() {
+  const [i, setI] = useState(0);
+  const cur = SCREENS[i];
+  return (
+    <section className="section duo" id="duo" aria-labelledby="duo-h">
+      <div className="page">
+        <p className="tracker">03 — iPhone Duo</p>
+        <h2 id="duo-h">Open it up. Rolligan fills the whole screen.</h2>
+        <p className="lede">
+          Rolligan is built for iPhone Duo. Unfold it and the game spreads across the inner
+          display: the scoreboard on one side, the big roll button on the other, and a hinge
+          roll to throw the dice. Fold it shut and it plays like a regular iPhone.
+        </p>
+
+        <div className="duo-stage">
+          <div className="duo-device" role="img" aria-label={`iPhone Duo unfolded, showing the Rolligan ${cur.label.toLowerCase()} screen`}>
+            <div className="duo-bezel">
+              {SCREENS.map((s, n) => (
+                <img
+                  key={s.key}
+                  className={`duo-img ${n === i ? "is-on" : ""}`}
+                  src={`/shots/duo-${s.key}.jpg`}
+                  alt=""
+                  width="1600"
+                  height="1126"
+                  loading={n === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              ))}
+              <span className="duo-crease" aria-hidden="true" />
+              <span className="glass-sheen" aria-hidden="true" />
+            </div>
+          </div>
+
+          <div className="seg" role="tablist" aria-label="Rolligan screens on iPhone Duo">
+            {SCREENS.map((s, n) => (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={n === i}
+                className={`seg-btn ${n === i ? "is-on" : ""}`}
+                onClick={() => setI(n)}
+                type="button"
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="fine">Real screens from the app on the iPhone Duo simulator. Player faces are fictional demo avatars.</p>
       </div>
     </section>
   );
@@ -117,17 +213,19 @@ function WhyPlay() {
     <section className="section" aria-labelledby="why-h">
       <div className="page">
         <p className="tracker">01 — Why play</p>
-        <h2 id="why-h">A game for the table, not the spreadsheet.</h2>
-        <p>
-          Rolligan is the dice game where you can hang out, laugh, and not have to strategize while
-          playing. Bring it out when the conversation's loose and nobody wants to think — roll the
-          dice, build the pot, and bank your points before someone rolls a 7. That's the whole game.
-        </p>
-        <p>
-          It doesn't punish you for being half-checked-out. The tension comes free — every roll,
-          you're either pushing your luck or banking it, and either choice gets a reaction at the
-          table.
-        </p>
+        <div className="glass-card why-card">
+          <h2 id="why-h">A game for the table, not the spreadsheet.</h2>
+          <p>
+            Rolligan is the dice game where you can hang out, laugh, and not have to strategize while
+            playing. Bring it out when the conversation's loose and nobody wants to think — roll the
+            dice, build the pot, and bank your points before someone rolls a 7. That's the whole game.
+          </p>
+          <p>
+            It doesn't punish you for being half-checked-out. The tension comes free — every roll,
+            you're either pushing your luck or banking it, and either choice gets a reaction at the
+            table.
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -140,13 +238,13 @@ function HowItWorks() {
     { n: "03", title: "Bust", body: "After three rolls, doubles double the pot, but a 7 wipes it out for everyone who hasn't banked." },
   ];
   return (
-    <section className="section section--alt" id="how" aria-labelledby="how-h">
+    <section className="section" id="how" aria-labelledby="how-h">
       <div className="page">
-        <p className="tracker">02 — How it works</p>
+        <p className="tracker">04 — How it works</p>
         <h2 id="how-h">Three moves. That's the whole game.</h2>
         <ol className="steps-grid">
           {steps.map((s) => (
-            <li key={s.n} className="step-card">
+            <li key={s.n} className="glass-card step-card">
               <span className="step-n">{s.n}</span>
               <strong>{s.title}</strong>
               <span className="step-body">{s.body}</span>
@@ -162,9 +260,9 @@ function GetTheApp() {
   return (
     <section className="section" id="ios" aria-labelledby="ios-h">
       <div className="page">
-        <p className="tracker">03 — Get the app</p>
-        <div className="ios-grid">
-          <div className="ios-card">
+        <p className="tracker">05 — Get the app</p>
+        <div className="glass-card ios-card">
+          <div className="ios-copy">
             <span className="ios-pill">
               <span className="ios-pill-dot" aria-hidden="true" />
               Now on iOS
@@ -179,10 +277,14 @@ function GetTheApp() {
               forever: unlimited games, hosting rooms and every house rule. No subscription.
               Friends always join free, in the app or right here on the web.
             </p>
-            <AppStoreBadge />
+            <div className="cta-row">
+              <AppStoreBadge />
+              <a href="/join" className="pill-cta pill-glass">Joining a friend? Enter a code</a>
+            </div>
           </div>
-          <div className="ios-visual">
-            <PhoneShot />
+          <div className="ios-phones" aria-hidden="false">
+            <PhoneFrame src="/shots/iphone-home.jpg" alt="Rolligan home screen on iPhone" className="ios-phone ios-phone--back" />
+            <PhoneFrame src="/shots/iphone-board.jpg" alt="Rolligan game board on iPhone" className="ios-phone ios-phone--front" />
           </div>
         </div>
       </div>
@@ -192,9 +294,9 @@ function GetTheApp() {
 
 function About() {
   return (
-    <section className="section section--alt" id="about" aria-labelledby="about-h">
+    <section className="section" id="about" aria-labelledby="about-h">
       <div className="page">
-        <p className="tracker">04 — Who builds it</p>
+        <p className="tracker">06 — Who builds it</p>
         <h2 id="about-h">An independent studio in Chicago.</h2>
         <p>
           Rolligan is made by{" "}
@@ -230,9 +332,16 @@ function Footer() {
 export default function App() {
   return (
     <>
+      <div className="ambient" aria-hidden="true">
+        <span className="orb orb--a" />
+        <span className="orb orb--b" />
+        <span className="orb orb--c" />
+      </div>
       <Nav />
       <Hero />
       <WhyPlay />
+      <Showcase />
+      <DuoSection />
       <HowItWorks />
       <GetTheApp />
       <About />
