@@ -402,10 +402,12 @@ img, svg { display: block; }
 
 /* ---------- GET THE APP ---------- */
 .ios-card { padding: 2.25rem 1.75rem 0; display: grid; grid-template-columns: 1fr; gap: 1rem; }
-.ios-phones { position: relative; display: flex; justify-content: center; align-items: flex-end; height: 380px; overflow: hidden; margin: 0 -1.75rem; }
-.ios-phone { width: 190px; margin: 0; position: absolute; bottom: -90px; }
-.ios-phone--back { transform: translateX(-45%) rotate(-7deg); opacity: 0.95; }
-.ios-phone--front { transform: translateX(22%) rotate(4deg); z-index: 2; }
+.ios-card { overflow: visible; }
+.ios-card::after { display: none; }
+.ios-phones { position: relative; z-index: 3; display: flex; justify-content: center; align-items: flex-end; height: 400px; margin: 0 -1.75rem; }
+.ios-phone { width: 170px; margin: 0; position: absolute; bottom: -2.5rem; }
+.ios-phone--back { transform: translateX(-38%) rotate(-7deg); opacity: 0.95; }
+.ios-phone--front { transform: translateX(26%) rotate(4deg); z-index: 2; }
 .ios-card h2 { margin-bottom: 0.85rem; }
 .ios-pill {
   display: inline-flex; align-items: center; gap: 0.45rem; margin: 0 0 1.4rem;
@@ -457,8 +459,8 @@ footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; hei
   .steps-grid { grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
   .ios-card { padding: 3.5rem 0 0 3.5rem; grid-template-columns: 1.15fr 0.85fr; gap: 2rem; align-items: stretch; }
   .ios-copy { padding-bottom: 3.5rem; }
-  .ios-phones { height: auto; min-height: 460px; margin: 0; }
-  .ios-phone { width: 230px; bottom: -110px; }
+  .ios-phones { height: auto; min-height: 520px; margin: 0; }
+  .ios-phone { width: 250px; bottom: -3.5rem; }
   .ios-phone--back { transform: translateX(-40%) rotate(-7deg); }
   .ios-phone--front { transform: translateX(14%) rotate(4deg); }
 }
