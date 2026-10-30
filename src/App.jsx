@@ -60,6 +60,7 @@ function Nav() {
         <div className="nav-links">
           <a href="#see">See it</a>
           <a href="#duo">iPhone Duo</a>
+          <a href="#android">Android</a>
           <a href="#how">How it works</a>
           <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="pill-cta pill-cta-sm">Get the app</a>
         </div>
@@ -84,7 +85,7 @@ function Hero() {
           <p className="hero-chips">
             <span className="chip">iPhone</span>
             <span className="chip">iPhone Duo</span>
-            <span className="chip">Join free from any browser</span>
+            <a className="chip chip--link" href="#android">Android: join from your browser</a>
           </p>
         </div>
         <div className="hero-visual">
@@ -103,15 +104,15 @@ const SCREENS = [
   { key: "home", label: "Home", alt: "Rolligan home screen" },
 ];
 
-function PhoneFrame({ src, alt, className = "", eager = false }) {
+function PhoneFrame({ src, alt, className = "", eager = false, w = 660, h = 1434 }) {
   return (
     <figure className={`phone ${className}`}>
       <div className="phone-body">
         <img
           src={src}
           alt={alt}
-          width="660"
-          height="1434"
+          width={w}
+          height={h}
           loading={eager ? "eager" : "lazy"}
           decoding="async"
         />
@@ -208,6 +209,56 @@ function DuoSection() {
   );
 }
 
+function AndroidSection() {
+  const ways = [
+    { n: "A", title: "Scan the QR code", body: "The host's phone shows a QR code. Point your camera at it and tap the link. The game opens right in your browser." },
+    { n: "B", title: "Tap the invite link", body: "The host can text you an invite from the app. Tap it and you land in their game." },
+    { n: "C", title: "Type the room code", body: "Go to rolligan.com/join, enter the four-letter code and your name, and you're in." },
+  ];
+  return (
+    <section className="section" id="android" aria-labelledby="android-h">
+      <div className="page">
+        <p className="tracker">04 — Android</p>
+        <div className="android-grid">
+          <div>
+            <h2 id="android-h">On Android? You're in.</h2>
+            <p className="lede">
+              There's no Android app to install, and you don't need one. Everyone joins a game from
+              their own phone, and on Android that happens in your browser: free, no account, no download.
+            </p>
+            <ol className="ways">
+              {ways.map((w) => (
+                <li key={w.n} className="glass-card way">
+                  <span className="way-n">{w.n}</span>
+                  <span className="way-body">
+                    <strong>{w.title}</strong>
+                    <span>{w.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="cta-row">
+              <a href="/join" className="pill-cta">Join a game now</a>
+            </div>
+            <p className="fine">
+              Games are hosted from an iPhone for now. Android phones join and play along from the browser, and joining is always free.
+            </p>
+          </div>
+          <div className="android-visual">
+            <PhoneFrame
+              src="/shots/android-join.jpg"
+              alt="The Rolligan join page in a phone browser: enter a room code and your name"
+              w={660}
+              h={1286}
+              className="android-phone"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WhyPlay() {
   return (
     <section className="section" aria-labelledby="why-h">
@@ -240,7 +291,7 @@ function HowItWorks() {
   return (
     <section className="section" id="how" aria-labelledby="how-h">
       <div className="page">
-        <p className="tracker">04 — How it works</p>
+        <p className="tracker">05 — How it works</p>
         <h2 id="how-h">Three moves. That's the whole game.</h2>
         <ol className="steps-grid">
           {steps.map((s) => (
@@ -260,7 +311,7 @@ function GetTheApp() {
   return (
     <section className="section" id="ios" aria-labelledby="ios-h">
       <div className="page">
-        <p className="tracker">05 — Get the app</p>
+        <p className="tracker">06 — Get the app</p>
         <div className="glass-card ios-card">
           <div className="ios-copy">
             <span className="ios-pill">
@@ -296,7 +347,7 @@ function About() {
   return (
     <section className="section" id="about" aria-labelledby="about-h">
       <div className="page">
-        <p className="tracker">06 — Who builds it</p>
+        <p className="tracker">07 — Who builds it</p>
         <h2 id="about-h">An independent studio in Chicago.</h2>
         <p>
           Rolligan is made by{" "}
@@ -342,6 +393,7 @@ export default function App() {
       <WhyPlay />
       <Showcase />
       <DuoSection />
+      <AndroidSection />
       <HowItWorks />
       <GetTheApp />
       <About />

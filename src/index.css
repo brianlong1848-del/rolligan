@@ -364,6 +364,29 @@ img, svg { display: block; }
   .duo-device { margin: 0 -0.5rem; }
 }
 
+/* ---------- ANDROID ---------- */
+.android-grid { display: grid; grid-template-columns: 1fr; gap: 2.5rem; align-items: center; }
+.ways { list-style: none; margin: 1.5rem 0 1.75rem; padding: 0; display: grid; gap: 0.9rem; }
+.way { display: flex; gap: 1rem; align-items: flex-start; padding: 1.15rem 1.25rem; border-radius: 20px; }
+.way-n {
+  flex: 0 0 auto; width: 2.4rem; height: 2.4rem; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--display); font-weight: 900; font-size: 1.15rem; color: #1a0d06;
+  background: linear-gradient(180deg, #ff9a6b, #ff6b35 55%, #f0551d);
+  box-shadow: inset 0 1.5px 0 rgba(255,255,255,0.6), inset 0 -2px 4px rgba(150,40,0,0.3), 0 6px 16px -6px rgba(255,107,53,0.7);
+}
+.way-body { display: flex; flex-direction: column; gap: 0.2rem; }
+.way-body strong { color: var(--text); font-size: 1.05rem; }
+.way-body span:not(.way-n) { color: var(--text-mid); font-size: 0.98rem; line-height: 1.5; }
+.android-grid h2 { max-width: 26ch; }
+.android-visual { display: flex; justify-content: center; }
+.android-phone { width: min(300px, 70%); margin: 0; }
+.chip--link { color: var(--accent); text-decoration: none; }
+.chip--link:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+@media (min-width: 900px) {
+  .android-grid { grid-template-columns: 1.15fr 0.85fr; gap: 4rem; }
+  .android-phone { transform: rotate(3deg); }
+}
+
 /* ---------- HOW IT PLAYS ---------- */
 .steps-grid { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; gap: 1.1rem; grid-template-columns: 1fr; }
 .step-card { padding: 1.75rem 1.75rem 2rem; border-radius: 24px; transition: transform 0.25s ease, border-color 0.2s ease; }
