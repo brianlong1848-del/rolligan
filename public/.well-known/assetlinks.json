@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.clarendonlabs.rolligan",
+      "sha256_cert_fingerprints": [
+        "D8:10:FD:42:36:AB:56:EB:80:E0:4B:3F:F9:E8:D5:32:A5:33:E3:92:D5:98:C7:0C:84:16:F8:14:B2:9D:69:64"
+      ]
+    }
+  }
+]
