@@ -1,6 +1,6 @@
-// Free games + Rolligan Pro entitlement for the web host (Android app).
+// Free games + Rolligan unlock entitlement for the web host (Android app).
 // Mirrors StoreManager.swift: the first 3 games a banker STARTS are free, then
-// the one-time Rolligan Pro unlock. Joining someone else's room is never
+// the one-time Rolligan unlock unlock. Joining someone else's room is never
 // counted or gated. Counts live in this browser's localStorage.
 
 import { isPlayBillingAvailable, restoreProFromPlay } from './playBilling.js'

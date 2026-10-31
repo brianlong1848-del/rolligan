@@ -3,7 +3,7 @@
 // Realtime exactly like the iOS banker, so iOS and web joiners work unchanged.
 //
 // Gate: hosting is offered only inside the Android app (Play Billing's Digital
-// Goods API is the tell). First 3 games free, then Rolligan Pro ($2.99 once).
+// Goods API is the tell). First 3 games free, then one $2.99 unlock.
 
 import { useEffect, useRef, useState } from 'react'
 import { GameState, GamePhase, RoundPhase } from '../engine/GameState.js'
@@ -208,8 +208,8 @@ function Setup({ onStart, pro }) {
 
       <button style={{ ...S.primary, marginTop: 10 }} onClick={start}>START GAME →</button>
       <div style={S.hint}>
-        {pro ? 'Rolligan Pro ✓ · unlimited games'
-          : left > 0 ? `${left} of 3 free games left, then $2.99 once.` : 'Free games used — unlock Rolligan Pro to keep hosting.'}
+        {pro ? 'Unlocked ✓ · unlimited games'
+          : left > 0 ? `${left} of 3 free games left, then $2.99 once.` : 'Free games used — unlock Rolligan to keep hosting.'}
       </div>
       <a href="/play" style={{ ...S.hint, display: 'block', color: C.inkDim }}>← Back</a>
     </div>
