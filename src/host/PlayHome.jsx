@@ -25,8 +25,8 @@ export default function PlayHome() {
               RESUME GAME · ROOM {resume.code}</a>}
             <a href="/host" style={H.primary}>HOST A GAME 🎲</a>
             <div style={H.hint}>
-              {pro ? 'Rolligan Pro ✓ · unlimited games'
-                : left > 0 ? `${left} of 3 free games left, then $2.99 once` : 'Free games used · unlock Rolligan Pro to keep hosting'}
+              {pro ? 'Unlocked ✓ · unlimited games'
+                : left > 0 ? `${left} of 3 free games left, then $2.99 once` : 'Free games used · unlock Rolligan to keep hosting'}
             </div>
           </>
         ) : (

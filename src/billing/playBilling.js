@@ -2,14 +2,14 @@
 // The Play listing is a Trusted Web Activity (../rolligan-android) around this
 // site, and Chrome exposes the Digital Goods API only to pages running inside
 // that TWA with Play Billing enabled — so `window.getDigitalGoodsService` is the
-// switch: hosting (and the Rolligan Pro purchase) exist only inside the app;
+// switch: hosting (and the Rolligan unlock purchase) exist only inside the app;
 // every ordinary browser stays join-only.
 //
 // Rolligan has no server, so the entitlement is client-side: a successful
 // purchase (or a restore via listPurchases) marks Pro in localStorage.
 
 export const PLAY_PRO_PRODUCT_ID = 'com.clarendonlabs.rolligan.host'
-export const PLAY_PRO_NAME = 'Rolligan Pro'
+export const PLAY_PRO_NAME = 'Rolligan unlock'
 export const PLAY_PRO_FALLBACK_PRICE = '$2.99'
 const PLAY_BILLING_METHOD = 'https://play.google.com/billing'
 
@@ -37,7 +37,7 @@ export async function getPlayProPrice() {
   }
 }
 
-/** Restore: true when this Google account already owns Rolligan Pro. */
+/** Restore: true when this Google account already owns Rolligan unlock. */
 export async function restoreProFromPlay() {
   try {
     const owned = (await (await playService()).listPurchases())
@@ -49,7 +49,7 @@ export async function restoreProFromPlay() {
 }
 
 /**
- * Buy (or silently restore) Rolligan Pro through Google Play.
+ * Buy (or silently restore) Rolligan unlock through Google Play.
  * Resolves `{ ok: true, restored }` or `{ ok: false, reason, message }` with
  * reason one of 'unavailable' | 'cancelled' | 'error'.
  */

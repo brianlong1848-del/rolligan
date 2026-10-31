@@ -1,4 +1,4 @@
-// Rolligan Pro paywall for the Android app: first 3 hosted games are free,
+// Rolligan unlock paywall for the Android app: first 3 hosted games are free,
 // then a one-time Play Billing purchase (com.clarendonlabs.rolligan.host).
 import { useEffect, useState } from 'react'
 import { C } from '../ui/shared.js'
@@ -32,7 +32,7 @@ export default function Paywall({ onUnlocked, onClose }) {
     const owned = await restoreProFromPlay()
     setBusy(false)
     if (owned) { markPro(); onUnlocked(true) }
-    else setMsg('No Rolligan Pro purchase found on this Google account.')
+    else setMsg('No Rolligan purchase found on this Google account.')
   }
 
   const perks = [
@@ -43,7 +43,7 @@ export default function Paywall({ onUnlocked, onClose }) {
   return (
     <div style={P.wrap}>
       <div style={P.card}>
-        <div style={P.eyebrow}>ROLLIGAN PRO</div>
+        <div style={P.eyebrow}>UNLOCK ROLLIGAN</div>
         <h1 style={P.title}>Your {FREE_GAME_LIMIT} free games are up.</h1>
         <p style={P.lede}>One unlock keeps you playing forever. No subscription, no ads.</p>
         <div style={{ display: 'grid', gap: 10, margin: '14px 0 18px' }}>
@@ -56,7 +56,7 @@ export default function Paywall({ onUnlocked, onClose }) {
           ))}
         </div>
         <button style={{ ...P.primary, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={buy}>
-          {busy ? 'ONE MOMENT…' : `UNLOCK ROLLIGAN PRO · ${price ?? PLAY_PRO_FALLBACK_PRICE} ONCE`}
+          {busy ? 'ONE MOMENT…' : `UNLOCK ROLLIGAN · ${price ?? PLAY_PRO_FALLBACK_PRICE} ONCE`}
         </button>
         <button style={P.secondary} disabled={busy} onClick={restore}>Restore purchase</button>
         {!available && <div style={P.note}>Purchases happen through Google Play inside the Rolligan Android app.</div>}
