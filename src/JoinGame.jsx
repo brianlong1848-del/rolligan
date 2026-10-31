@@ -2,80 +2,10 @@
 // MULTIPLAYER.md: enter a room code + name, see the live shared pot, and tap
 // your own BANK. The iOS banker is the authority; we render its broadcasts.
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase, roomChannel } from './supabaseClient.js'
-
-const C = {
-  bg: '#1A1A20', panel: '#22222A', panelMuted: '#121217',
-  ink: '#F8F7F4', inkDim: 'rgba(248,247,244,0.5)', rule: 'rgba(248,247,244,0.12)',
-  orange: '#FF6B35', mint: '#4ECDC4', charcoal: '#1A1A20',
-}
-const PLAYER_COLORS = ['#FF6B35', '#4ECDC4', '#F5C24B', '#B084FF', '#FF8FA3',
-  '#76D672', '#5BB8FF', '#FF9E64', '#C9B789', '#E25AB8']
-
-// Swift's UUID always serializes UPPERCASE, and the iOS host re-broadcasts each
-// seat id as a Swift UUID. crypto.randomUUID() is lowercase, so we MUST uppercase
-// ours — otherwise our own seat never string-matches in the host's state snapshot
-// (p.id === playerId.current) and we'd time out with "no live game found".
-const newId = () =>
-  (crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
-    .toUpperCase()
-
-// ── Player photos (2026-10-16) ────────────────────────────────────────────
-// A player can add a photo; it shows in their circle instead of their initial,
-// big when it's their roll, on the round recap and the winner screen. Photos
-// stay in this browser (localStorage) and are sent LIVE to the players in the
-// room as a small JPEG over the broadcast relay — never stored on a server.
-const PhotosCtx = createContext({})
-
-// Center-crop + resize an image File to a square JPEG data URL.
-function squareJpeg(file, side, quality) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      const s = Math.min(img.width, img.height)
-      const c = document.createElement('canvas')
-      c.width = side; c.height = side
-      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, side, side)
-      URL.revokeObjectURL(url)
-      resolve(c.toDataURL('image/jpeg', quality))
-    }
-    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e) }
-    img.src = url
-  })
-}
-// Downscale a stored data URL to the 128 px wire size; returns bare base64.
-function wireFromDataUrl(dataUrl) {
-  return new Promise((resolve) => {
-    const img = new Image()
-    img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = 128; c.height = 128
-      c.getContext('2d').drawImage(img, 0, 0, 128, 128)
-      resolve(c.toDataURL('image/jpeg', 0.6).split(',')[1])
-    }
-    img.onerror = () => resolve('')
-    img.src = dataUrl
-  })
-}
-
-// A player's circle: photo if we have one, otherwise their initial.
-function Avatar({ id, name, color, size = 30, ring, ringWidth = 2 }) {
-  const photos = useContext(PhotosCtx)
-  const src = id ? photos[id] : null
-  const initial = (name || '?').trim().slice(0, 1).toUpperCase() || '?'
-  return (
-    <span aria-hidden="true" style={{
-      width: size, height: size, borderRadius: 999, flex: 'none', overflow: 'hidden',
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      background: color, color: C.charcoal, fontWeight: 900, fontSize: Math.round(size * 0.42),
-      boxShadow: ring ? `0 0 0 ${ringWidth}px ${ring}` : 'none',
-    }}>
-      {src ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initial}
-    </span>
-  )
-}
+import { C, PhotosCtx, newId, squareJpeg, wireFromDataUrl, colorFor as colorForPlayers } from './ui/shared.js'
+import { Avatar, Die, Confetti } from './ui/components.jsx'
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
 
@@ -323,24 +253,6 @@ function EnterCard({ code, setCode, name, setName, join, myPhoto, setMyPhoto }) 
     </div>
   )
 }
-
-// One die face, pip-perfect, with a quick tumble animation on every new roll.
-// Styled to read like the iOS app's 3D dice (rounded body, glossy top edge).
-const PIP_GRID = { 1: [4], 2: [2, 6], 3: [2, 4, 6], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }
-function Die({ face, body, rollKey }) {
-  const pips = PIP_GRID[Math.max(1, Math.min(6, face))] ?? []
-  return (
-    <div key={rollKey} className="rol-die" style={{
-      background: `linear-gradient(145deg, ${body}, ${shade(body)})`,
-    }}>
-      <span className="rol-die-gloss" />
-      {Array.from({ length: 9 }, (_, i) => (
-        <span key={i} className="rol-pip" style={{ opacity: pips.includes(i) ? 1 : 0 }} />
-      ))}
-    </div>
-  )
-}
-const shade = (hex) => hex === C.orange ? '#D14E1F' : '#37A89E'
 
 // Round recap on every browser — winner, everyone's points, own row
 // highlighted. The host auto-advances after ~7s; the next broadcast
@@ -722,33 +634,8 @@ function Results({ game, meId }) {
   )
 }
 
-// Celebratory emoji rain for the finale.
-function Confetti({ extra = [] }) {
-  // Pieces are minted ONCE (lazy state init) — random during render upsets
-  // both React and the lint gods.
-  const [pieces] = useState(() => {
-    const glyphs = ['🎉', '🎊', '⭐️', '🥇', '🎲', ...extra]
-    return Array.from({ length: 30 }, (_, i) => ({
-      i,
-      g: glyphs[Math.floor(Math.random() * glyphs.length)],
-      left: Math.random() * 100,
-      delay: Math.random() * 1.6,
-      size: 18 + Math.random() * 26,
-    }))
-  })
-  return (
-    <div className="rol-confetti" aria-hidden="true">
-      {pieces.map((p) => (
-        <span key={p.i} style={{ left: `${p.left}%`, animationDelay: `${p.delay}s`,
-          fontSize: `${p.size}px` }}>{p.g}</span>
-      ))}
-    </div>
-  )
-}
-
 const Centered = ({ children }) => <div style={S.centered}>{children}</div>
-const colorFor = (game, id) =>
-  PLAYER_COLORS[Math.max(0, game.players.findIndex((p) => p.id === id)) % PLAYER_COLORS.length]
+const colorFor = (game, id) => colorForPlayers(game.players, id)
 
 const S = {
   root: { minHeight: '100vh', background: C.bg, color: C.ink,
