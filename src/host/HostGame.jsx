@@ -129,6 +129,7 @@ function Setup({ onStart, pro }) {
   const [players, setPlayers] = useState(() => RosterStore.seedPlayers())
   const [photosById, setPhotosById] = useState({})
   const [remembered] = useState(() => loadRosterPhotos())
+  const [photoMenuFor, setPhotoMenuFor] = useState(null) // player id whose photo buttons are open
   const [rounds, setRounds] = useState(DEFAULT_ROUNDS)
   const [safeRolls, setSafeRolls] = useState(DEFAULT_SAFE_ROLLS)
   const [bonus, setBonus] = useState(DEFAULT_SAFE_SEVEN_BONUS)
@@ -142,7 +143,7 @@ function Setup({ onStart, pro }) {
   const add = () => setPlayers((ps) => (ps.length < MAX_PLAYERS ? [...ps, makePlayer('')] : ps))
   async function pick(id, file) {
     if (!file) return
-    try { const d = await squareJpeg(file, 256, 0.8); setPhotosById((m) => ({ ...m, [id]: d })) } catch { /* ignore */ }
+    try { const d = await squareJpeg(file, 256, 0.8); setPhotosById((m) => ({ ...m, [id]: d })); setPhotoMenuFor(null) } catch { /* ignore */ }
   }
   const photoFor = (p) => photosById[p.id] ?? (photosById[p.id] === '' ? null : remembered[nameKey(p.name)])
 
@@ -162,25 +163,40 @@ function Setup({ onStart, pro }) {
       )}
 
       <div style={S.tracker}>PLAYERS ON THIS PHONE · {players.length}</div>
-      <div style={S.hint}>Just you is fine — everyone else joins by code on their own phone.</div>
+      <div style={S.hint}>Just you is fine — everyone else joins by code on their own phone. Tap a circle to add a photo.</div>
       <div style={{ display: 'grid', gap: 8 }}>
         {players.map((p, i) => {
           const photo = photoFor(p)
           return (
-            <div key={p.id} style={S.row}>
-              <label style={{ cursor: 'pointer' }} title="Add a photo">
-                <input type="file" accept="image/*" style={{ display: 'none' }}
-                  onChange={(e) => { pick(p.id, e.target.files?.[0]); e.target.value = '' }} />
-                {photo
-                  ? <img src={photo} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: 'cover' }} />
-                  : <span style={{ ...S.circle, background: colorFor(players, p.id) }}>{(p.name.trim()[0] || `${i + 1}`).toUpperCase()}</span>}
-              </label>
-              <input style={S.input} value={p.name} placeholder={`Player ${i + 1}`} maxLength={20}
-                onChange={(e) => setName(i, e.target.value)} />
-              {photo && <button style={S.iconBtn} title="Remove photo"
-                onClick={() => setPhotosById((m) => ({ ...m, [p.id]: '' }))}>📷✕</button>}
-              <button style={{ ...S.iconBtn, opacity: players.length > 1 ? 1 : 0.3 }} disabled={players.length <= 1}
-                onClick={() => remove(i)} aria-label="Remove player">✕</button>
+            <div key={p.id} style={{ display: 'grid', gap: 6 }}>
+              <div style={S.row}>
+                <button type="button" style={S.avatarBtn} aria-label={photo ? 'Change photo' : 'Add a photo'}
+                  aria-expanded={photoMenuFor === p.id}
+                  onClick={() => setPhotoMenuFor((cur) => (cur === p.id ? null : p.id))}>
+                  {photo
+                    ? <img src={photo} alt="" style={{ width: 36, height: 36, borderRadius: 999, objectFit: 'cover' }} />
+                    : <span style={{ ...S.circle, background: colorFor(players, p.id) }}>{(p.name.trim()[0] || `${i + 1}`).toUpperCase()}</span>}
+                  <span aria-hidden="true" style={S.cameraBadge}>📷</span>
+                </button>
+                <input style={S.input} value={p.name} placeholder={`Player ${i + 1}`} maxLength={20}
+                  onChange={(e) => setName(i, e.target.value)} />
+                <button style={{ ...S.iconBtn, opacity: players.length > 1 ? 1 : 0.3 }} disabled={players.length <= 1}
+                  onClick={() => remove(i)} aria-label="Remove player">✕</button>
+              </div>
+              {photoMenuFor === p.id && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 44 }}>
+                  <label style={S.photoBtn}>Take a photo
+                    <input type="file" accept="image/*" capture="user" style={{ display: 'none' }}
+                      onChange={(e) => { pick(p.id, e.target.files?.[0]); e.target.value = '' }} />
+                  </label>
+                  <label style={S.photoBtn}>Choose a photo
+                    <input type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={(e) => { pick(p.id, e.target.files?.[0]); e.target.value = '' }} />
+                  </label>
+                  {photo && <button type="button" style={{ ...S.photoBtn, border: 'none', color: C.inkDim }}
+                    onClick={() => { setPhotosById((m) => ({ ...m, [p.id]: '' })); setPhotoMenuFor(null) }}>Use initial</button>}
+                </div>
+              )}
             </div>
           )
         })}
@@ -600,6 +616,14 @@ const S = {
   input: { background: C.panel, border: `1px solid ${C.rule}`, borderRadius: 12, padding: '12px 14px',
     color: C.ink, fontSize: 16, fontWeight: 600, outline: 'none', minWidth: 0, flex: 1, fontFamily: 'inherit' },
   iconBtn: { background: 'transparent', border: 'none', color: C.inkDim, fontSize: 16, cursor: 'pointer', padding: 6, fontFamily: 'inherit' },
+  avatarBtn: { position: 'relative', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+    width: 36, height: 36, flex: 'none', display: 'inline-flex', fontFamily: 'inherit' },
+  cameraBadge: { position: 'absolute', right: -4, bottom: -4, width: 18, height: 18, borderRadius: 999,
+    background: C.panel, border: `1px solid ${C.rule}`, fontSize: 10, display: 'inline-flex',
+    alignItems: 'center', justifyContent: 'center', lineHeight: 1 },
+  photoBtn: { display: 'inline-block', cursor: 'pointer', padding: '8px 14px', borderRadius: 999,
+    border: `1.5px solid ${C.mint}`, color: C.mint, fontWeight: 700, fontSize: 14, background: 'transparent',
+    fontFamily: 'inherit', textAlign: 'center' },
   stepBtn: { width: 44, height: 44, borderRadius: 999, border: `1.5px solid ${C.rule}`, background: C.panel,
     color: C.ink, fontSize: 22, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' },
   primary: { background: C.orange, color: C.charcoal, border: 'none', borderRadius: 999, padding: '16px',
