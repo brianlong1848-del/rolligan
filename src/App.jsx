@@ -1,6 +1,42 @@
 import { useState } from "react";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/rolligan/id6774974562";
+// Google Play — live 2026-11-07 (FEAT-ROL-022). The referrer shows up in Play Console → Acquisition.
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.clarendonlabs.rolligan&referrer=" +
+  encodeURIComponent("utm_source=rolligan.com&utm_medium=badge&utm_campaign=website");
+
+function PlayBadge({ className = "" }) {
+  return (
+    <a
+      className={`app-badge ${className}`}
+      href={PLAY_STORE_URL}
+      target="_blank"
+      rel="noreferrer"
+      aria-label="Get Rolligan on Google Play"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="app-badge-logo">
+        <path fill="#00d7fe" d="M3.6 2.3 13.4 12 3.6 21.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" />
+        <path fill="#ffce00" d="m16.6 15.2-3.2-3.2 3.2-3.2 3.9 2.2c1.1.6 1.1 1.4 0 2z" />
+        <path fill="#ff3a44" d="M13.4 12 3.6 21.7c.4.3 1 .3 1.6 0l11.4-6.5z" />
+        <path fill="#00f076" d="M13.4 12 16.6 8.8 5.2 2.3c-.6-.3-1.2-.3-1.6 0z" />
+      </svg>
+      <span className="app-badge-text">
+        <small>Get it on</small>
+        <strong>Google Play</strong>
+      </span>
+    </a>
+  );
+}
+
+function StoreBadges({ className = "" }) {
+  return (
+    <div className={`store-badges ${className}`}>
+      <AppStoreBadge />
+      <PlayBadge />
+    </div>
+  );
+}
 
 function AppStoreBadge({ className = "" }) {
   return (
@@ -79,13 +115,13 @@ function Hero() {
           <p className="hook">The dice game where we can hang out, laugh, and not have to strategize while playing.</p>
           <p className="hero-sub">For 2+ players. First 3 games free, then $2.99 once.</p>
           <div className="cta-row">
-            <AppStoreBadge />
+            <StoreBadges />
             <a href="#see" className="pill-cta pill-glass">See it in action ↓</a>
           </div>
           <p className="hero-chips">
             <span className="chip">iPhone</span>
             <span className="chip">iPhone Duo</span>
-            <a className="chip chip--link" href="#android">Android: join from your browser</a>
+            <a className="chip chip--link" href="#android">Android: host or join</a>
           </p>
         </div>
         <div className="hero-visual">
@@ -241,7 +277,7 @@ function AndroidSection() {
               <a href="/join" className="pill-cta">Join a game now</a>
             </div>
             <p className="fine">
-              Games are hosted from an iPhone for now. Android phones join and play along from the browser, and joining is always free.
+              Host from iPhone or Android. Anyone can join from any phone's browser, and joining is always free.
             </p>
           </div>
           <div className="android-visual">
@@ -329,7 +365,7 @@ function GetTheApp() {
               Friends always join free, in the app or right here on the web.
             </p>
             <div className="cta-row">
-              <AppStoreBadge />
+              <StoreBadges />
               <a href="/join" className="pill-cta pill-glass">Joining a friend? Enter a code</a>
             </div>
           </div>

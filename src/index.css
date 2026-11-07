@@ -439,6 +439,8 @@ img, svg { display: block; }
 .app-badge-text small { font-size: 0.62rem; font-weight: 500; opacity: 0.92; }
 .app-badge-text strong { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
 
+.store-badges { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+
 /* ---------- FOOTER ---------- */
 footer { padding: 3rem 1.5rem 3.5rem; position: relative; z-index: 1; }
 footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(78,205,196,0.45) 30%, rgba(255,107,53,0.45) 70%, transparent); }

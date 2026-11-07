@@ -7,7 +7,7 @@
 
 **Last updated:** 2026-07-12
 **iOS repo:** `~/code/clarendon-labs/rolligan-ios` (NOT git — no stash/checkout fallback)
-**This repo (web + docs, is git):** `~/code/clarendon-labs/rolligan` → `github.com:brianlong1848-del/rolligan.git`
+**This repo (web + docs, is git):** `~/code/clarendon-labs/rolligan-web` → `github.com:brianlong1848-del/rolligan.git`
 
 ---
 
@@ -117,6 +117,31 @@ regenerate, build. Landscape captures come out rotated in the framebuffer — fi
 ---
 
 ## Changelog (newest first)
+
+- **2026-07-12** — **Build 16 code landed** (marketing stays 1.2.1): the **Rolligan Pro
+  tier reframe + 4 upsell moments**. The single existing non-consumable IAP
+  (`com.clarendonlabs.Rolligan.host`) is now surfaced as **"Rolligan Pro"** in-app — SKU/price
+  unchanged. Added `StoreManager.isUnlocked`/`purchasePro()` aliases (DEBUG-bypassed like
+  `canHost`). New `Rolligan/Views/RolliganProView.swift` holds the Free-vs-Pro comparison screen,
+  a reusable `ProBadge` pill, a `ProUpsellSheet` soft-prompt (inline purchase), and a `ProUpsell`
+  once-per-week post-game throttle (UserDefaults). Changes: **(1)** the *Each Roller* house rule
+  (own-phone roll tracking) is now Pro-gated in `NewGameView` — tapping it while locked opens the
+  Pro screen, `effectiveScoreEntry` collapses the free tier to sole-banker, normalized at
+  `startGame`; **(2)** a "Rolligan Pro" row in the Settings sheet (`HomeView.SettingsView`) opens
+  the comparison, shows a "You have Rolligan Pro" state when unlocked; **(3)** tapping share/invite
+  in `GameBoardView` while locked shows a soft "Bring your group in" prompt before the paywall
+  ("Not now" returns to the game — no free share to fall through to); **(4)** a once-a-week
+  post-game nudge over `WinnerView` for pass-and-play, not-yet-unlocked crews (suppressed when
+  `wasHosted`); plus small `PRO` badges next to Each Roller, the Settings row, and the invite
+  button. `HostInviteSheet` paywall relabeled to Rolligan Pro. Bumped `CURRENT_PROJECT_VERSION`
+  15 → 16 in `project.yml`. **Compile status:** header-level audit only (all changed files
+  `swiftc -parse` clean; cross-file symbols verified) — Brian runs `xcodegen generate` + archive.
+  **NOT yet built/archived/on TestFlight.**
+  **⚠️ ASC action for Brian (separate, server-side):** rename the IAP **display name**
+  "Multiplayer Host" → **"Rolligan Pro"** in App Store Connect so the store listing matches the
+  in-app copy. Do NOT change the product ID or price. Not doable from iOS code.
+  Ship order unchanged: 1.2.1 with **build 15** still clears review first, unless Brian swaps the
+  pending resubmit to build 16.
 
 - **2026-07-12** — **Attached build 15** to the 1.2.1 version and **uploaded 4 iPad 13″ screenshots**
   (Home, board, Setup, winner) to the en-US slot — all COMPLETE. Submission still PAUSED before the

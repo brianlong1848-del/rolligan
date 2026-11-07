@@ -8,6 +8,11 @@ import { C, PhotosCtx, newId, squareJpeg, wireFromDataUrl, colorFor as colorForP
 import { Avatar, Die, Confetti } from './ui/components.jsx'
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
+// Google Play (live 2026-11-07). Joiners are the free distribution channel:
+// every game ends with 2–5 people who just played and don't have the app.
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.clarendonlabs.rolligan&referrer=' +
+  encodeURIComponent('utm_source=rolligan.com&utm_medium=join-gameover&utm_campaign=post-game')
+const IS_ANDROID = /\bAndroid\b/i.test(navigator.userAgent)
 
 // iPhone/iPad play in the native app, not the browser. When a universal link is
 // configured on the iOS app, iOS opens the app straight to this game BEFORE this
@@ -630,6 +635,41 @@ function Results({ game, meId }) {
           </div>
         ))}
       </div>
+      <GetTheApp iWon={iWon} />
+    </div>
+  )
+}
+
+// Post-game install nudge (FEAT-ROL-023). Shown to every joiner once the
+// standings are in: they just played a full game on the host's phone, and this
+// is the moment they'd host the next one. One primary badge for their platform,
+// the other store as a text link; never shown inside the installed app (TWA).
+function GetTheApp({ iWon }) {
+  const inApp = typeof document !== 'undefined' && document.referrer.startsWith('android-app://')
+  if (inApp) return null
+  const primary = IS_ANDROID
+    ? { href: PLAY_STORE_URL, label: 'Get Rolligan on Google Play' }
+    : { href: APP_STORE_URL, label: 'Get Rolligan on the App Store' }
+  const other = IS_ANDROID
+    ? { href: APP_STORE_URL, label: 'iPhone? App Store' }
+    : { href: PLAY_STORE_URL, label: 'Android? Google Play' }
+  return (
+    <div className="recap-row" style={{ marginTop: 12, padding: 14, borderRadius: 16,
+      background: 'rgba(255,255,255,0.06)', border: `1.5px solid ${C.orange}`,
+      display: 'grid', gap: 8, textAlign: 'center', animationDelay: '1.4s' }}>
+      <div style={{ fontWeight: 800, color: C.ink }}>
+        {iWon ? 'Host the rematch.' : 'Want a rematch? Host it yourself.'}
+      </div>
+      <div style={{ fontSize: 13, color: C.inkDim }}>
+        Your first 3 games are free, then $2.99 once. Friends join from any phone, like you just did.
+      </div>
+      <a href={primary.href} target="_blank" rel="noreferrer"
+        style={{ ...S.primary, display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+        {primary.label}
+      </a>
+      <a href={other.href} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: C.inkDim }}>
+        {other.label}
+      </a>
     </div>
   )
 }
