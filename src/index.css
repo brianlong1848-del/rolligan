@@ -296,6 +296,45 @@ img, svg { display: block; }
 }
 .phone-body img { width: 100%; height: auto; border-radius: 12.5% / 5.8%; background: #111; }
 .phone-body .glass-sheen { border-radius: 15% / 7%; }
+
+/* ---------- DEVICE FRAMES (FEAT-CLA-028) ----------
+   Drawn in CSS so they scale cleanly: a metal rim behind a black glass bezel, side
+   buttons on .phone-btns. iPhone = titanium, buttons left (action + volume) and right
+   (power). Android = flat graphite, buttons on the right. Shots carry their own status bar. */
+.phone-body { isolation: isolate; }
+.phone--iphone .phone-body,
+.phone--android .phone-body { background: #050507; }
+.phone--iphone .phone-body::before,
+.phone--android .phone-body::before {
+  content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: inherit;
+}
+.phone--iphone .phone-body { border-radius: 15.5% / 7.2%; padding: 3.1%; }
+.phone--iphone .phone-body::before {
+  background: linear-gradient(140deg, #c9c9d1 0%, #7d7d88 12%, #4b4b55 30%, #2f2f37 50%, #4b4b55 70%, #7d7d88 88%, #c9c9d1 100%);
+}
+.phone--iphone .phone-body img { border-radius: 12.6% / 5.8%; }
+.phone--android .phone-body { border-radius: 11.5% / 5.3%; padding: 2.3%; }
+.phone--android .phone-body::before {
+  background: linear-gradient(90deg, #4a4b51 0%, #2a2b30 7%, #1d1e22 50%, #2a2b30 93%, #4a4b51 100%);
+}
+.phone--android .phone-body img { border-radius: 9.4% / 4.3%; }
+.phone--iphone .phone-body .glass-sheen,
+.phone--android .phone-body .glass-sheen { border-radius: inherit; }
+.phone-btns { position: absolute; inset: 0; pointer-events: none; }
+.phone-btns::before,
+.phone-btns::after { content: ''; position: absolute; width: 3px; }
+.phone--iphone .phone-btns::before {
+  left: -6px; top: 16%; height: 25%; border-radius: 2px 0 0 2px;
+  background: linear-gradient(180deg, #8a8a95 0 18%, transparent 18% 34%, #8a8a95 34% 62%, transparent 62% 70%, #8a8a95 70% 100%);
+}
+.phone--iphone .phone-btns::after { right: -6px; top: 25%; height: 11%; border-radius: 0 2px 2px 0; background: #8a8a95; }
+.phone--android .phone-btns::before { display: none; }
+.phone--android .phone-btns::after {
+  right: -6px; top: 20%; height: 25%; border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, #3d3e44 0 26%, transparent 26% 38%, #3d3e44 38% 100%);
+}
+.duo-btns { position: absolute; right: -5px; top: 14%; width: 3px; height: 13%; border-radius: 0 2px 2px 0; background: #8a8a95; }
+.seg--devices { margin: 1.5rem auto 0; }
 @media (min-width: 900px) {
   .phone-row { grid-auto-flow: row; grid-template-columns: repeat(4, 1fr); grid-auto-columns: auto; max-width: 1180px; margin: 1rem auto 0; overflow: visible; gap: 1.5rem; padding: 3rem 1.5rem 2rem; }
   .phone--1 { transform: translateY(18px) rotate(-3deg); }
@@ -379,12 +418,15 @@ img, svg { display: block; }
 .way-body span:not(.way-n) { color: var(--text-mid); font-size: 0.98rem; line-height: 1.5; }
 .android-grid h2 { max-width: 26ch; }
 .android-visual { display: flex; justify-content: center; }
-.android-phone { width: min(300px, 70%); margin: 0; }
+.android-visual { position: relative; padding: 1rem 0 2rem; }
+.android-phone { width: min(230px, 46%); margin: 0; }
+.android-phone--back { transform: translateX(12%) rotate(-6deg); opacity: 0.95; }
+.android-phone--front { transform: translateX(-12%) translateY(2.5rem) rotate(4deg); z-index: 2; }
 .chip--link { color: var(--accent); text-decoration: none; }
 .chip--link:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
 @media (min-width: 900px) {
   .android-grid { grid-template-columns: 1.15fr 0.85fr; gap: 4rem; }
-  .android-phone { transform: rotate(3deg); }
+  .android-phone { width: min(250px, 48%); }
 }
 
 /* ---------- HOW IT PLAYS ---------- */

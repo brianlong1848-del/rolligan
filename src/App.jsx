@@ -140,10 +140,16 @@ const SCREENS = [
   { key: "home", label: "Home", alt: "Rolligan home screen" },
 ];
 
-function PhoneFrame({ src, alt, className = "", eager = false, w = 660, h = 1434 }) {
+// Device frames (FEAT-CLA-028): drawn in CSS — iPhone (titanium, side buttons; the
+// screenshots carry their own Dynamic Island) and Android (flat graphite, right-side
+// buttons; the Android shots carry a status bar + punch-hole camera baked in).
+const SHOT_H = { iphone: 1434, android: 1455 };
+
+function PhoneFrame({ src, alt, className = "", eager = false, device = "iphone", w = 660, h = SHOT_H[device] }) {
   return (
-    <figure className={`phone ${className}`}>
+    <figure className={`phone phone--${device} ${className}`}>
       <div className="phone-body">
+        <span className="phone-btns" aria-hidden="true" />
         <img
           src={src}
           alt={alt}
@@ -158,18 +164,42 @@ function PhoneFrame({ src, alt, className = "", eager = false, w = 660, h = 1434
   );
 }
 
+const DEVICES = [
+  { key: "iphone", label: "iPhone" },
+  { key: "android", label: "Android" },
+];
+
 function PhoneRow() {
+  const [device, setDevice] = useState("iphone");
+  const name = device === "android" ? "Android" : "iPhone";
   return (
-    <div className="phone-row">
-      {SCREENS.map((s, i) => (
-        <PhoneFrame
-          key={s.key}
-          src={`/shots/iphone-${s.key}.jpg`}
-          alt={s.alt}
-          className={`phone--${i + 1}`}
-        />
-      ))}
-    </div>
+    <>
+      <div className="seg seg--devices" role="tablist" aria-label="Show Rolligan on">
+        {DEVICES.map((d) => (
+          <button
+            key={d.key}
+            role="tab"
+            aria-selected={d.key === device}
+            className={`seg-btn ${d.key === device ? "is-on" : ""}`}
+            onClick={() => setDevice(d.key)}
+            type="button"
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+      <div className="phone-row">
+        {SCREENS.map((s, i) => (
+          <PhoneFrame
+            key={`${device}-${s.key}`}
+            device={device}
+            src={`/shots/${device}-${s.key}.jpg`}
+            alt={`${s.alt} on ${name}`}
+            className={`phone--${i + 1}`}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -220,6 +250,7 @@ function DuoSection() {
                 />
               ))}
               <span className="duo-crease" aria-hidden="true" />
+              <span className="duo-btns" aria-hidden="true" />
               <span className="glass-sheen" aria-hidden="true" />
             </div>
           </div>
@@ -257,11 +288,13 @@ function AndroidSection() {
         <p className="tracker">04 — Android</p>
         <div className="android-grid">
           <div>
-            <h2 id="android-h">On Android? You're in.</h2>
+            <h2 id="android-h">On Android? Get it on Google Play.</h2>
             <p className="lede">
-              There's no Android app to install, and you don't need one. Everyone joins a game from
-              their own phone, and on Android that happens in your browser: free, no account, no download.
+              Rolligan is on Google Play. Host from your Android phone, with your first 3 games free
+              and $2.99 once to unlock the rest. Friends without the app still join from their own
+              phone's browser: free, no account, no download.
             </p>
+            <p className="fine">Joining a game without the app:</p>
             <ol className="ways">
               {ways.map((w) => (
                 <li key={w.n} className="glass-card way">
@@ -274,6 +307,7 @@ function AndroidSection() {
               ))}
             </ol>
             <div className="cta-row">
+              <PlayBadge />
               <a href="/join" className="pill-cta">Join a game now</a>
             </div>
             <p className="fine">
@@ -282,11 +316,16 @@ function AndroidSection() {
           </div>
           <div className="android-visual">
             <PhoneFrame
-              src="/shots/android-join.jpg"
-              alt="The Rolligan join page in a phone browser: enter a room code and your name"
-              w={660}
-              h={1286}
-              className="android-phone"
+              device="android"
+              src="/shots/android-home.jpg"
+              alt="Rolligan home screen on an Android phone: host a game or join one"
+              className="android-phone android-phone--back"
+            />
+            <PhoneFrame
+              device="android"
+              src="/shots/android-board.jpg"
+              alt="Rolligan game board on an Android phone: the pot at 160 with players banking"
+              className="android-phone android-phone--front"
             />
           </div>
         </div>
