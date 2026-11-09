@@ -98,7 +98,7 @@ function Nav() {
           <a href="#duo">iPhone Duo</a>
           <a href="#android">Android</a>
           <a href="#how">How it works</a>
-          <a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="pill-cta pill-cta-sm">Get the app</a>
+          <a href="#ios" className="pill-cta pill-cta-sm">Get the app</a>
         </div>
       </div>
     </nav>
@@ -391,7 +391,7 @@ function GetTheApp() {
           <div className="ios-copy">
             <span className="ios-pill">
               <span className="ios-pill-dot" aria-hidden="true" />
-              Now on iOS
+              Now on iPhone + Android
             </span>
             <h2 id="ios-h">Try 3 games free.</h2>
             <p className="ios-lede">
