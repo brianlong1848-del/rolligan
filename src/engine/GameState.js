@@ -96,6 +96,19 @@ export class GameState {
       && this.activePlayerIDs.size > 0
   }
 
+  /** Whether a seat may be put (back) into the live round right now.
+   *  A seat that already BANKED this round must never be re-activated: it would
+   *  sit in activePlayerIDs while every screen shows it as banked, so "everyone
+   *  banked" never empties the table and the round can only end on a bust.
+   *  (Joiners re-announce `join` on every reconnect.) The recap is excluded
+   *  too; _startRound puts everyone back in anyway. Mirrors GameState.swift. */
+  _canEnterLiveRound(id) {
+    if (this.phase !== GamePhase.playing || this.bankedThisRound.has(id)) return false
+    return this.roundPhase === RoundPhase.readyToRoll
+      || this.roundPhase === RoundPhase.rolling
+      || this.roundPhase === RoundPhase.awaitingAction
+  }
+
   isActive(id) { return this.activePlayerIDs.has(id) }
   hasBanked(id) { return this.bankedThisRound.has(id) }
   bankedAmount(id) { return this.bankedThisRound.has(id) ? this.bankedThisRound.get(id) : null }
@@ -241,7 +254,7 @@ export class GameState {
   /** Cash the given players in at the CURRENT pot. */
   bank(ids) {
     if (!this.bankingOpen) return
-    const valid = [...ids].filter((id) => this.activePlayerIDs.has(id))
+    const valid = [...ids].filter((id) => this.activePlayerIDs.has(id) && !this.bankedThisRound.has(id))
     if (valid.length === 0) return
     this._pushUndo()
     this.config = { ...this.config, players: this.config.players.map((p) => ({ ...p })) }
@@ -348,7 +361,7 @@ export class GameState {
     this._pushUndo()
     const p = makePlayer(this._resolveName(name))
     this.config = { ...this.config, players: [...this.config.players, p] }
-    if (this.phase === GamePhase.playing && this.roundPhase !== RoundPhase.busted) this.activePlayerIDs.add(p.id)
+    if (this._canEnterLiveRound(p.id)) this.activePlayerIDs.add(p.id)
     this._notify()
     return true
   }
@@ -357,7 +370,8 @@ export class GameState {
    *  reconnecting client re-activates its existing seat. */
   addRemotePlayer(id, name) {
     if (this.config.players.some((p) => p.id === id)) {
-      if (this.phase === GamePhase.playing && this.roundPhase !== RoundPhase.busted) this.activePlayerIDs.add(id)
+      // Reconnect: a seat that already banked STAYS banked.
+      if (this._canEnterLiveRound(id)) this.activePlayerIDs.add(id)
       this._notify()
       return true
     }
@@ -365,7 +379,7 @@ export class GameState {
     this._pushUndo()
     const p = makePlayer(this._resolveName(name), { id })
     this.config = { ...this.config, players: [...this.config.players, p] }
-    if (this.phase === GamePhase.playing && this.roundPhase !== RoundPhase.busted) this.activePlayerIDs.add(id)
+    if (this._canEnterLiveRound(id)) this.activePlayerIDs.add(id)
     this._notify()
     return true
   }
@@ -457,6 +471,17 @@ export class GameState {
     this.biggestPot = s.biggestPot ?? 0
     this.sevenSplashSeq = s.sevenSplashSeq ?? 0
     this._undo = []
+    // Heal a save written with the stuck-round bug: drop any seat that is both
+    // "riding" and already banked (or gone). If nobody is left riding
+    // mid-round, everyone has banked — end the round now.
+    const seated = new Set(this.config.players.map((p) => p.id))
+    for (const id of [...this.activePlayerIDs]) {
+      if (!seated.has(id) || this.bankedThisRound.has(id)) this.activePlayerIDs.delete(id)
+    }
+    if (this.phase === GamePhase.playing && this.roundPhase === RoundPhase.awaitingAction
+        && this.activePlayerIDs.size === 0 && this.bankedThisRound.size > 0) {
+      this._finishRound(false, 0)
+    }
     // A game saved mid-recap resumes by finishing the recap.
     if (this.roundPhase === RoundPhase.roundOver) {
       const scheduledRound = this.roundIndex
