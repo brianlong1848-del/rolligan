@@ -46,6 +46,13 @@ body {
 }
 
 #root { width: 100%; min-height: 100vh; position: relative; }
+/* viewport-fit=cover: keep the landing and the game clear of the side safe areas (landscape
+   iPhone, iPhone Duo open sideways). The narrowest gutter inside is 1rem, so shifting the shell by
+   inset - 1rem gives max(gutter, inset) there instead of stacking the two. */
+#root {
+  padding-left: max(0px, env(safe-area-inset-left, 0px) - 1rem);
+  padding-right: max(0px, env(safe-area-inset-right, 0px) - 1rem);
+}
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--primary); }
@@ -604,3 +611,19 @@ footer::before { content: ''; position: absolute; top: 0; left: 0; right: 0; hei
 .rol-avatar-pulse { display: inline-flex; animation: rolAvatarPulse 0.9s ease-in-out infinite alternate; }
 @keyframes rolAvatarPulse { from { transform: scale(1); } to { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .rol-avatar-pulse { animation: none; } }
+
+/* ---------- SHORT VIEWPORTS ----------
+   iPhone Duo folded (382 x 580), Split View (385 x 571) and open sideways (951 x 589,
+   871 x 520): tighten the hero so both store badges are on screen without scrolling.
+   Nothing here applies above 640px of height. */
+@media (max-height: 640px) {
+  .hero { padding-top: 1.5rem; padding-bottom: 2.5rem; }
+  .hero .tracker { margin-bottom: 0.75rem; }
+  .hero .wordmark { margin-bottom: 0.9rem; }
+  .hero .hero-sub { margin-bottom: 1.25rem; }
+}
+@media (max-height: 640px) and (min-width: 700px) {
+  .hero { min-height: 0; }
+  .hero .wordmark { font-size: clamp(4.5rem, 10.5vw, 6.25rem); }
+  .hero .hook { font-size: 1.55rem; max-width: 30ch; }
+}
