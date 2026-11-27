@@ -13,7 +13,7 @@ import { makeConfig, DiceMode, ScoreEntry, MAX_PLAYERS, MIN_ROUNDS, MAX_ROUNDS,
   DEFAULT_SAFE_SEVEN_BONUS } from '../engine/GameConfig.js'
 import { makePlayer, RosterStore } from '../engine/Player.js'
 import { C, PhotosCtx, colorFor, squareJpeg, wireFromDataUrl } from '../ui/shared.js'
-import { Avatar, Die, Confetti } from '../ui/components.jsx'
+import { Avatar, Die, Confetti, RoundMeter, RoundSplash } from '../ui/components.jsx'
 import { hostingAvailable, canStartGame, recordGameStarted, freeGamesLeft, isPro,
   refreshEntitlement } from '../billing/entitlement.js'
 import { useObservable } from './useObservable.js'
@@ -281,6 +281,19 @@ function Board({ game, host, onQuit }) {
     }
   }), [game])
 
+  // Each new round pops a big "ROUND N of M" (the last one gets FINAL ROUND),
+  // so nobody at the table loses track of where the game is.
+  const [roundSplash, setRoundSplash] = useState(null)
+  useEffect(() => {
+    if (game.phase !== GamePhase.playing) return
+    const n = game.roundNumber
+    const last = game.totalRounds > 1 && n >= game.totalRounds
+    setRoundSplash(n)
+    navigator.vibrate?.(last ? 80 : 40)
+    const t = setTimeout(() => setRoundSplash((r) => (r === n ? null : r)), last ? 2400 : 1700)
+    return () => clearTimeout(t)
+  }, [game.roundNumber, game.phase]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const virtual = game.config.diceMode === DiceMode.virtual
   const roller = game.currentRoller
   const rollKey = `${game.roundNumber}-${game.rollsThisRound}`
@@ -290,6 +303,8 @@ function Board({ game, host, onQuit }) {
   return (
     <div style={S.live}>
       {game.roundPhase === RoundPhase.roundOver && game.roundSummary && <Recap game={game} />}
+      {roundSplash != null && !splash && game.roundPhase !== RoundPhase.roundOver
+        && <RoundSplash round={roundSplash} total={game.totalRounds} />}
       {splash && <Splash kind={splash} />}
       {sheet === 'invite' && <InviteSheet host={host} onClose={() => setSheet(null)} />}
       {sheet === 'roster' && <RosterSheet game={game} host={host} onClose={() => setSheet(null)} />}
@@ -302,14 +317,12 @@ function Board({ game, host, onQuit }) {
         </Sheet>
       )}
 
-      <div style={S.roundRow}>
-        <span style={S.roundBig}>ROUND {game.roundNumber}</span>
-        <span style={{ color: C.inkDim, fontWeight: 600 }}>of {game.totalRounds}</span>
+      <RoundMeter round={game.roundNumber} total={game.totalRounds}>
         <button onClick={() => setSheet('invite')} style={S.codeChip} aria-label="Invite players">
           <span style={{ width: 8, height: 8, borderRadius: 999, background: host.status === 'connected' ? C.mint : C.orange }} />
           {host.code ?? '····'}
         </button>
-      </div>
+      </RoundMeter>
 
       <div style={{ ...S.banner, background: game.inSafePhase ? 'rgba(78,205,196,0.12)' : 'rgba(255,107,53,0.12)',
         color: game.inSafePhase ? C.mint : C.orange }}>
@@ -633,8 +646,6 @@ const S = {
   linkBtn: { background: 'none', border: 'none', color: C.inkDim, fontWeight: 600, cursor: 'pointer', padding: 8, fontFamily: 'inherit', fontSize: 14 },
   live: { width: '100%', maxWidth: 480, padding: '12px 16px 12px', display: 'flex', flexDirection: 'column', gap: 8,
     height: '100dvh', boxSizing: 'border-box', overflow: 'hidden' },
-  roundRow: { display: 'flex', alignItems: 'center', gap: 8 },
-  roundBig: { fontSize: 20, fontWeight: 800, letterSpacing: -0.5 },
   codeChip: { marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, background: C.panel,
     border: `1.5px solid ${C.rule}`, borderRadius: 999, padding: '6px 12px', color: C.orange, fontWeight: 900,
     letterSpacing: 3, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' },

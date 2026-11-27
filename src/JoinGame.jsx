@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase, roomChannel } from './supabaseClient.js'
 import { C, PhotosCtx, newId, squareJpeg, wireFromDataUrl, colorFor as colorForPlayers } from './ui/shared.js'
-import { Avatar, Die, Confetti } from './ui/components.jsx'
+import { Avatar, Die, Confetti, RoundMeter, RoundSplash } from './ui/components.jsx'
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/rolligan/id6774974562'
 // Google Play (live 2026-11-07). Joiners are the free distribution channel:
@@ -398,19 +398,18 @@ function LiveGame({ game, me, canBank, bank, roll, enterRoll, enterDoubles }) {
     }
   }, [game.inSafePhase, game.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The last round just began — now or never.
-  const [finalSplash, setFinalSplash] = useState(false)
-  const finalAnnounced = useRef(false)
+  // Each new round pops a big "ROUND N of M"; the last one is FINAL ROUND —
+  // now or never. Keyed on the round so it fires once per round.
+  const [roundSplash, setRoundSplash] = useState(null)
   useEffect(() => {
-    if (game.round === game.totalRounds && game.totalRounds > 1
-        && game.phase === 'playing' && !finalAnnounced.current) {
-      finalAnnounced.current = true
-      setFinalSplash(true)
-      navigator.vibrate?.(80)
-      const t = setTimeout(() => setFinalSplash(false), 2400)
-      return () => clearTimeout(t)
-    }
-  }, [game.round, game.totalRounds, game.phase])
+    if (game.phase !== 'playing') return
+    const n = game.round
+    const last = game.totalRounds > 1 && n >= game.totalRounds
+    setRoundSplash(n)
+    navigator.vibrate?.(last ? 80 : 40)
+    const t = setTimeout(() => setRoundSplash((r) => (r === n ? null : r)), last ? 2400 : 1700)
+    return () => clearTimeout(t)
+  }, [game.round, game.phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rollerColor = roller ? (myTurn ? C.orange : colorFor(game, roller.id)) : C.inkDim
   return (
@@ -446,24 +445,12 @@ function LiveGame({ game, me, canBank, bank, roll, enterRoll, enterDoubles }) {
           </div>
         </div>
       )}
-      {finalSplash && (
-        <div style={S.dangerWrap}>
-          <div className="rol-danger-pop" style={{ ...S.dangerCard,
-            borderColor: C.mint, boxShadow: '0 0 40px rgba(78,205,196,0.45)' }}>
-            <div style={{ fontSize: 40 }}>🏁</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: C.orange, letterSpacing: 2 }}>FINAL ROUND</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>last chance — make it count</div>
-          </div>
-        </div>
-      )}
+      {roundSplash != null && !sevenSplash && !dangerSplash && game.roundPhase !== 'roundOver'
+        && <RoundSplash round={roundSplash} total={game.totalRounds} />}
       {/* Round — big and unmissable */}
-      <div style={S.roundRow}>
-        <span style={S.roundBig}>ROUND {game.round}</span>
-        <span style={{ color: C.inkDim, fontWeight: 600 }}>of {game.totalRounds}</span>
-        <span style={{ ...S.tracker, marginLeft: 'auto' }}>
-          {game.players.filter((p) => p.status === 'in').length} IN
-        </span>
-      </div>
+      <RoundMeter round={game.round} total={game.totalRounds}>
+        <span style={S.tracker}>{game.players.filter((p) => p.status === 'in').length} IN</span>
+      </RoundMeter>
 
       <div style={{ ...S.banner,
         background: game.inSafePhase ? 'rgba(78,205,196,0.12)' : 'rgba(255,107,53,0.12)',
@@ -704,8 +691,6 @@ const S = {
     height: '100dvh', boxSizing: 'border-box', overflow: 'hidden' },
   topRow: { display: 'flex', justifyContent: 'space-between' },
   tracker: { color: C.inkDim, fontSize: 11, fontWeight: 600, letterSpacing: 1.6 },
-  roundRow: { display: 'flex', alignItems: 'baseline', gap: 8 },
-  roundBig: { fontSize: 20, fontWeight: 800, letterSpacing: -0.5, color: C.ink },
   rollerBanner: { display: 'flex', alignItems: 'center', gap: 10, borderRadius: 13,
     border: '2px solid', padding: '6px 12px' },
   rollerAvatar: { width: 30, height: 30, borderRadius: 999, flex: 'none',
